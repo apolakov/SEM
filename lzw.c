@@ -25,7 +25,7 @@ int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
     printf("Compress 25");
     int lastFoundCode = -1;
     for (int i = 0; i < size; i++) {
-        printf("%d\n",i);
+
         currentString[currentLength] = input[i];
         currentLength++;
 

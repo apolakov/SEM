@@ -6,6 +6,11 @@ set(CMAKE_C_STANDARD 99)
 find_package(ZLIB REQUIRED)
 find_package(PNG REQUIRED)
 
+if(MSVC)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
+endif()
+
 # Add your executable
 add_executable(SEM main.c function.c lzw.c files.c bmp.c png.c pngs.h)
 

@@ -183,21 +183,18 @@ int* extractPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSi
 unsigned int extractSizeFromPixelData(const Pixel* pixels, int numPixels) {
     if (numPixels < 32) {
         fprintf(stderr, "Not enough pixels to extract payload size.\n");
-        return 0; // Not enough pixels to extract the size
+        return 0;
     }
 
     unsigned int size = 0;
     for (int i = 0; i < 32; ++i) {
         unsigned int bit = pixels[i].blue & 1;
         size |= (bit << i);
-
-        // Debugging: Print each bit and the cumulative size
-        printf("Bit %d from pixel %d: %u, Cumulative size: %u\n", i, bit, size);
+        // You may want to print the intermediate values for debugging
+        // printf("Extracting bit %d from pixel %d: %d, Cumulative size: %u\n", bit, i, pixels[i].blue, size);
     }
 
-    // Debugging: Print the final extracted size
     printf("Final extracted size: %u\n", size);
-
     return size;
 }
 
