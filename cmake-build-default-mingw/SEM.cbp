@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="SEM"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\..\;CMake Files\..\semestralkaplsplspls\;CMake Files\..\semestralkaplsplspls\pnglib\;CMake Files\..\semestralkaplsplspls\pnglib\vcpkg\;CMake Files\..\semestralkaplsplspls\pnglib\vcpkg\scripts\;CMake Files\..\semestralkaplsplspls\pnglib\vcpkg\scripts\buildsystems\;CMake Files\..\semestralkaplsplspls\pnglib\vcpkg\installed\;CMake Files\..\semestralkaplsplspls\pnglib\vcpkg\installed\x64-windows\;CMake Files\..\semestralkaplsplspls\pnglib\vcpkg\installed\x64-windows\share\;CMake Files\..\semestralkaplsplspls\pnglib\vcpkg\installed\x64-windows\share\zlib\;CMake Files\..\semestralkaplsplspls\pnglib\vcpkg\installed\x64-windows\share\png\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="D:/C/SEM/cmake-build-default-mingw"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="SEM">
+				<Option output="D:/C/SEM/cmake-build-default-mingw/SEM.exe" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="D:/C/SEM/cmake-build-default-mingw"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="D:/C/semestralkaplsplspls/pnglib/vcpkg/installed/x64-windows/include"/>
+					<Add directory="C:/Program Files/JetBrains/CLion 2023.3.2/bin/mingw/bin/../lib/gcc/x86_64-w64-mingw32/13.1.0/include"/>
+					<Add directory="C:/Program Files/JetBrains/CLion 2023.3.2/bin/mingw/bin/../lib/gcc/x86_64-w64-mingw32/13.1.0/../../../../include"/>
+					<Add directory="C:/Program Files/JetBrains/CLion 2023.3.2/bin/mingw/bin/../lib/gcc/x86_64-w64-mingw32/13.1.0/include-fixed"/>
+					<Add directory="C:/Program Files/JetBrains/CLion 2023.3.2/bin/mingw/bin/../lib/gcc/x86_64-w64-mingw32/13.1.0/../../../../x86_64-w64-mingw32/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 SEM"/>
+					<CompileFile command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="SEM/fast">
+				<Option output="D:/C/SEM/cmake-build-default-mingw/SEM.exe" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="D:/C/SEM/cmake-build-default-mingw"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="D:/C/semestralkaplsplspls/pnglib/vcpkg/installed/x64-windows/include"/>
+					<Add directory="C:/Program Files/JetBrains/CLion 2023.3.2/bin/mingw/bin/../lib/gcc/x86_64-w64-mingw32/13.1.0/include"/>
+					<Add directory="C:/Program Files/JetBrains/CLion 2023.3.2/bin/mingw/bin/../lib/gcc/x86_64-w64-mingw32/13.1.0/../../../../include"/>
+					<Add directory="C:/Program Files/JetBrains/CLion 2023.3.2/bin/mingw/bin/../lib/gcc/x86_64-w64-mingw32/13.1.0/include-fixed"/>
+					<Add directory="C:/Program Files/JetBrains/CLion 2023.3.2/bin/mingw/bin/../lib/gcc/x86_64-w64-mingw32/13.1.0/../../../../x86_64-w64-mingw32/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 SEM/fast"/>
+					<CompileFile command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="D:/C/SEM/cmake-build-default-mingw"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="D:/C/SEM/cmake-build-default-mingw"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="C:/PROGRA~1/JETBRA~1/CLION2~1.2/bin/mingw/bin/mingw32-make.exe -f &quot;D:/C/SEM/cmake-build-default-mingw/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="D:/C/SEM/bmp.c">
+			<Option target="SEM"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/bmp.h">
+			<Option target="SEM"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/files.c">
+			<Option target="SEM"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/files.h">
+			<Option target="SEM"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/function.c">
+			<Option target="SEM"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/function.h">
+			<Option target="SEM"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/lzw.c">
+			<Option target="SEM"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/lzw.h">
+			<Option target="SEM"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/main.c">
+			<Option target="SEM"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/png.c">
+			<Option target="SEM"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/pngs.h">
+			<Option target="SEM"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/../semestralkaplsplspls/pnglib/vcpkg/scripts/buildsystems/vcpkg.cmake">
+			<Option virtualFolder="CMake Files\..\semestralkaplsplspls\pnglib\vcpkg\scripts\buildsystems\"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/../semestralkaplsplspls/pnglib/vcpkg/installed/x64-windows/share/zlib/vcpkg-cmake-wrapper.cmake">
+			<Option virtualFolder="CMake Files\..\semestralkaplsplspls\pnglib\vcpkg\installed\x64-windows\share\zlib\"/>
+		</Unit>
+		<Unit filename="D:/C/SEM/../semestralkaplsplspls/pnglib/vcpkg/installed/x64-windows/share/png/vcpkg-cmake-wrapper.cmake">
+			<Option virtualFolder="CMake Files\..\semestralkaplsplspls\pnglib\vcpkg\installed\x64-windows\share\png\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

@@ -1,0 +1,1 @@
+ "D:/C/semestralkaplsplspls/pnglib/vcpkg/installed/x64-windows/lib/libpng16.lib" "D:/C/semestralkaplsplspls/pnglib/vcpkg/installed/x64-windows/lib/zlib.lib" "D:/C/semestralkaplsplspls/pnglib/vcpkg/installed/x64-windows/lib/zlib.lib" -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 
