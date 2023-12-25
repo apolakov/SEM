@@ -14,8 +14,10 @@
 //int writeBinaryPayloadData(const char* filename, const unsigned char* data, int size);
 int compareImages(const char* originalFilename, const char* savedFilename);
 
+
+
 int main() {
-    const char* imageFilename = "../images.png";
+    const char* imageFilename = "../png24.png";
     const char* payloadFilename = "../k.txt";
     const char* outputImageFilename = "../output.png";
     const char* decompressedPayloadFilename = "../decompressed_payload.txt";
@@ -36,6 +38,8 @@ int main() {
         return 1;
     }
 
+    /*
+
     // Step 3: Compress payload
     printf("start step3\n");
     int compressedSize;
@@ -46,17 +50,18 @@ int main() {
         fprintf(stderr, "Compression failed.\n");
         return 1;
     }
+     */
 
 
 
-    //Step 4  for embeding
+// Step 4: Embedding
     printf("start step4\n");
-    if (embedPayloadInPNG(imageFilename, outputImageFilename, compressedPayload, compressedSize) != 0) {
+    if (embedPayloadInPNG(imageFilename, outputImageFilename, payloadData, payloadSize) != 0) {
         fprintf(stderr, "Failed to embed payload into image or create output image.\n");
         // Free your payload data if necessary
         return 1;
-
     }
+
     Pixel* debugPixels;
     int debugWidth, debugHeight;
     if (readPNG(outputImageFilename, &debugPixels, &debugWidth, &debugHeight) == 0) {
@@ -85,7 +90,7 @@ int main() {
     if (readPNG(outputImageFilename, &preExtractPixels, &preExtractWidth, &preExtractHeight) == 0) {
         // Check the first 32 pixels
         for (int i = 0; i < 32; ++i) {
-            printf("main-Pixel %d Blue Channel Before Extraction: %u\n", i, preExtractPixels[i].blue);
+            //printf("main-Pixel %d Blue Channel Before Extraction: %u\n", i, preExtractPixels[i].blue);
         }
         free(preExtractPixels);
     } else {
@@ -99,65 +104,7 @@ int main() {
         fprintf(stderr, "Failed to extract and decompress payload from image.\n");
         return 1;
     }
-    if (compareImages(imageFilename, outputImageFilename) != 0) {
-        fprintf(stderr, "Image verification failed.\n");
-        return 1;
-    }
 
-
-    /*
-// Step 5: Extract and decompress payload from image
-printf("start step5\n");
-int extractionSuccess = extractAndDecompressPayload(outputImageFilename, decompressedPayloadFilename);
-if (extractionSuccess != 0) {
-   fprintf(stderr, "Failed to extract and decompress payload from image.\n");
-   return 1;
-}
-*/
-
-    return 0;
-}
-
-int compareImages(const char* originalFilename, const char* savedFilename) {
-    Pixel *originalPixels, *savedPixels;
-    int originalWidth, originalHeight, savedWidth, savedHeight;
-
-    if (readPNG(originalFilename, &originalPixels, &originalWidth, &originalHeight) != 0) {
-        fprintf(stderr, "Failed to read original image.\n");
-        return 1;
-    }
-
-    if (readPNG(savedFilename, &savedPixels, &savedWidth, &savedHeight) != 0) {
-        fprintf(stderr, "Failed to read saved image.\n");
-        free(originalPixels);
-        return 1;
-    }
-
-    if (originalWidth != savedWidth || originalHeight != savedHeight) {
-        fprintf(stderr, "Image dimensions do not match.\n");
-        free(originalPixels);
-        free(savedPixels);
-        return 1;
-    }
-
-    for (int y = 0; y < originalHeight; y++) {
-        for (int x = 0; x < originalWidth; x++) {
-            Pixel *originalPixel = &originalPixels[y * originalWidth + x];
-            Pixel *savedPixel = &savedPixels[y * savedWidth + x];
-            if (originalPixel->red != savedPixel->red ||
-                originalPixel->green != savedPixel->green ||
-                originalPixel->blue != savedPixel->blue) {
-                fprintf(stderr, "Pixel data mismatch at (%d, %d).\n", x, y);
-                free(originalPixels);
-                free(savedPixels);
-                return 1;
-            }
-        }
-    }
-
-    free(originalPixels);
-    free(savedPixels);
-    printf("Images are identical.\n");
     return 0;
 }
 

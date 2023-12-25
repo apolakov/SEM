@@ -17,12 +17,11 @@ int nextAvailableCode = 0;
 int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
     initializeDictionary();
 
-    printf("Compress 20");
     unsigned char currentString[MAX_CHAR + 1] = {0};
     int currentLength = 0;
     int* output = (int*)malloc(TABLE_SIZE * sizeof(int));
     int outputIndex = 0;
-    printf("Compress 25");
+
     int lastFoundCode = -1;
     for (int i = 0; i < size; i++) {
 
@@ -35,6 +34,7 @@ int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
         } else {
             if (lastFoundCode != -1) {
                 output[outputIndex++] = lastFoundCode;
+                printf("Compressing: Code %d at index %d\n", lastFoundCode, outputIndex - 1); // Debug statement
             }
             if (currentLength <= MAX_CHAR) {
                 addBytesToDictionary(currentString, currentLength);
@@ -44,10 +44,10 @@ int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
             lastFoundCode = findBytesCode(currentString, currentLength);
         }
     }
-    printf("Compress 46");
 
     if (lastFoundCode != -1) {
         output[outputIndex++] = lastFoundCode;
+        printf("Compressing: Code %d at index %d\n", lastFoundCode, outputIndex - 1); // Debug statement
     }
 
     *outputSize = outputIndex;
@@ -57,55 +57,70 @@ int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
 
 
 
-unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) {
 
-    printf("decompressing -> start\n");
-    printf("decompressing -> initializeDictionary()\n");
+unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) {
+    printf("Decompressing -> start\n");
     initializeDictionary();
 
     int bufferSize = 1024; // Initial buffer size
     unsigned char* decompressed = (unsigned char*)malloc(bufferSize);
+    if (!decompressed) {
+        fprintf(stderr, "Memory allocation failed at start of decompression.\n");
+        return NULL;
+    }
     int outputIndex = 0;
 
     for (int i = 0; i < size; i++) {
         int code = codes[i];
+        printf("Decompressing: Code %d at index %d\n", code, i);
+
         if (code < 0 || code >= nextAvailableCode) {
             free(decompressed);
             freeDictionary();
-            return NULL; // Invalid code
+            fprintf(stderr, "Found invalid code during decompression: %d\n", code);
+            return NULL;
         }
 
         if (outputIndex + table[code]->length >= bufferSize) {
             bufferSize *= 2;
-            decompressed = realloc(decompressed, bufferSize);
+            unsigned char* temp = realloc(decompressed, bufferSize);
+            if (!temp) {
+                free(decompressed);
+                freeDictionary();
+                fprintf(stderr, "Memory reallocation failed during decompression.\n");
+                return NULL;
+            }
+            decompressed = temp;
         }
 
         memcpy(decompressed + outputIndex, table[code]->bytes, table[code]->length);
         outputIndex += table[code]->length;
 
-        // Add new entry to dictionary
         if (i + 1 < size) {
             unsigned char newString[MAX_CHAR + 1];
+            int nextCode = codes[i + 1];
             int newLength = table[code]->length + 1;
             memcpy(newString, table[code]->bytes, table[code]->length);
-            newString[newLength - 1] = table[codes[i+1]]->bytes[0];
-            addBytesToDictionary(newString, newLength);
+            if (nextCode < nextAvailableCode) {
+                newString[newLength - 1] = table[nextCode]->bytes[0];
+                addBytesToDictionary(newString, newLength);
+            } else {
+                fprintf(stderr, "Next code %d is out of bounds at index %d\n", nextCode, i);
+            }
         }
     }
-    printf("decompressing -> after for()\n");
 
     *decompressedSize = outputIndex;
-    printf("decompressing -> after decompressedSize()\n");
     freeDictionary();
-    printf("decompressing -> after freeing dictionary\n");
-    printf("decompressing -> end\n");
+    printf("Decompressing -> end\n");
     return decompressed;
-
 }
+
 
 
 void addBytesToDictionary(const unsigned char* bytes, int length) {
     if (nextAvailableCode >= TABLE_SIZE) {
+        fprintf(stderr, "Dictionary is full, cannot add more entries.\n");
         return; // Dictionary full, cannot add more
     }
     table[nextAvailableCode] = (DictionaryEntry*)malloc(sizeof(DictionaryEntry));
@@ -169,7 +184,13 @@ unsigned char* readBinaryPayloadData(const char* filename, int* size) {
     }
 
     // Read the payload into the buffer
-    fread(data, 1, *size, file);
+    size_t itemsRead = fread(data, 1, *size, file);
+    if (itemsRead != *size) {
+        fprintf(stderr, "Error reading from file.\n");
+        free(data);
+        fclose(file);
+        return NULL;
+    }
     fclose(file);
     return data;
 }
@@ -196,7 +217,13 @@ int* loadOriginalCompressedPayload(const char* filename, int* size) {
     }
 
     // Load the data
-    fread(data, sizeof(int), *size, file);
+    size_t itemsRead = fread(data, sizeof(int), *size, file);
+    if (itemsRead != *size) {
+        fprintf(stderr, "Error reading from file.\n");
+        free(data);
+        fclose(file);
+        return NULL;
+    }
     fclose(file);
     return data;
 }
