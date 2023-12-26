@@ -363,7 +363,7 @@ int embedPayloadInPixels(Pixel* pixels, int width, int height, const unsigned ch
         unsigned char bit = (payload[byteIndex] >> bitIndex) & 1;
         pixels[pixelIndex].blue = (pixels[pixelIndex].blue & 0xFE) | bit;
 
-        printf("Embedding bit %u at pixel index %zu.\n", bit, pixelIndex);
+        //printf("Embedding bit %u at pixel index %zu.\n", bit, pixelIndex);
     }
     printf("Embedding payload: Byte size: %zu, Bit size: %zu image capacity is %zu\n", payloadByteSize, payloadBits, imageCapacity);
 
@@ -454,7 +454,7 @@ int extractPayloadFromPixels(const Pixel* pixels, int width, int height, unsigne
 
         unsigned char bit = pixels[pixelIndex].blue & 1;
         (*outPayload)[byteIndex] |= (bit << bitIndex);
-        printf("Extracting bit %u from pixel index %zu.\n", bit, pixelIndex);
+        //printf("Extracting bit %u from pixel index %zu.\n", bit, pixelIndex);
     }
 
     *outPayloadSizeBits = payloadSizeBits;
@@ -503,6 +503,6 @@ unsigned int extractSizeFromPixelDataPNG(const Pixel* pixels) {
 
 unsigned int extractBit(const Pixel* pixel) {
     unsigned int bit = pixel->blue & 1;
-    printf("Extracted bit %u from blue value %d\n", bit, pixel->blue);
+    //printf("Extracted bit %u from blue value %d\n", bit, pixel->blue);
     return bit;
 }

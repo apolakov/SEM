@@ -34,4 +34,5 @@ int extractPayloadFromPixels(const Pixel* pixels, int width, int height, unsigne
 int embedPayloadInPNG(const char* imageFilename, const char* outputImageFilename, const unsigned char* originalPayload, int originalPayloadSize);
         void embedSizePNG(Pixel* pixels, unsigned int sizeInBits);
 unsigned int extractBit(const Pixel* pixel);
+
 #endif //SEMESTRALKAPLSPLSPLS_PNGS_H

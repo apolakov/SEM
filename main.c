@@ -17,10 +17,10 @@ int compareImages(const char* originalFilename, const char* savedFilename);
 
 
 int main() {
-    const char* imageFilename = "../png24.png";
-    const char* payloadFilename = "../k.txt";
+    const char* imageFilename = "../Adam1.png";
+    const char* payloadFilename = "../png24.png";
     const char* outputImageFilename = "../output.png";
-    const char* decompressedPayloadFilename = "../decompressed_payload.txt";
+    const char* decompressedPayloadFilename = "../decompressed_payload.png";
 
     // Step 1: Determine file type and check if it's 24-bit
     printf("start step1\n");
@@ -62,6 +62,7 @@ int main() {
         return 1;
     }
 
+    /*
     Pixel* debugPixels;
     int debugWidth, debugHeight;
     if (readPNG(outputImageFilename, &debugPixels, &debugWidth, &debugHeight) == 0) {
@@ -85,6 +86,7 @@ int main() {
     free(compressedPayload);
       */
 
+    /*
     Pixel* preExtractPixels;
     int preExtractWidth, preExtractHeight;
     if (readPNG(outputImageFilename, &preExtractPixels, &preExtractWidth, &preExtractHeight) == 0) {
@@ -96,6 +98,7 @@ int main() {
     } else {
         fprintf(stderr, "main-Failed to read the image for extraction debugging.\n");
     }
+     */
 
     // Step 5: Extract and decompress payload from image
     printf("start step5\n");

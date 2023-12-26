@@ -17,7 +17,7 @@ int findBytesCode(const unsigned char *bytes, int length);
 void freeDictionary();
 unsigned char* readBinaryPayloadData(const char* filename, int* size);
 int* loadOriginalCompressedPayload(const char* filename, int* size);
-
+void resetDictionary();
 
 
 

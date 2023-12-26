@@ -8,7 +8,7 @@
 #include "bmp.h"
 
 #define MAX_CHAR 256
-#define TABLE_SIZE 4096
+#define TABLE_SIZE 300000
 
 
 DictionaryEntry* table[TABLE_SIZE];
@@ -98,15 +98,22 @@ unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) 
 
         if (i + 1 < size) {
             unsigned char newString[MAX_CHAR + 1];
-            int nextCode = codes[i + 1];
             int newLength = table[code]->length + 1;
             memcpy(newString, table[code]->bytes, table[code]->length);
+
+            int nextCode = codes[i + 1];
             if (nextCode < nextAvailableCode) {
-                newString[newLength - 1] = table[nextCode]->bytes[0];
-                addBytesToDictionary(newString, newLength);
+                newString[newLength - 1] = table[nextCode]->bytes[0]; // Regular case
+            } else if (nextCode == nextAvailableCode) {
+                newString[newLength - 1] = newString[0]; // Special case
             } else {
                 fprintf(stderr, "Next code %d is out of bounds at index %d\n", nextCode, i);
+                free(decompressed);
+                freeDictionary();
+                return NULL;
             }
+
+            addBytesToDictionary(newString, newLength);
         }
     }
 
