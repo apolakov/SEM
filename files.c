@@ -18,11 +18,11 @@ int determineFileTypeAndCheck24Bit(const char *filename) {
     int fileTypeCheck = 1; // Default to 1 (failure)
 
     if (is_png(file) && is_24bit_png(file)) {
-        fileTypeCheck = 0; // It's a 24-bit PNG file
+        fileTypeCheck = 3; // It's a 24-bit PNG file
     } else {
         rewind(file); // Necessary for BMP check
         if (is_bmp(file) && is_24bit_bmp(file)) {
-            fileTypeCheck = 0; // It's a 24-bit BMP file
+            fileTypeCheck = 2; // It's a 24-bit BMP file
         }
     }
 

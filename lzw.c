@@ -1,61 +1,76 @@
 #include <stdio.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-//#include "function.h"
 #include <stdlib.h>
 #include "lzw.h"
-#include "bmp.h"
+
 
 #define MAX_CHAR 256
-#define TABLE_SIZE 300000
+#define TABLE_SIZE 30000
 
 
 DictionaryEntry* table[TABLE_SIZE];
 int nextAvailableCode = 0;
 
+
+
 int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
+    // Initialize the dictionary
     initializeDictionary();
 
-    unsigned char currentString[MAX_CHAR + 1] = {0};
-    int currentLength = 0;
-    int* output = (int*)malloc(TABLE_SIZE * sizeof(int));
+    // Prepare for compression
+    int* output = (int*)malloc(size * sizeof(int)); // Allocate memory for worst-case scenario
+    if (!output) {
+        fprintf(stderr, "Memory allocation failed for output.\n");
+        return NULL;
+    }
     int outputIndex = 0;
 
-    int lastFoundCode = -1;
-    for (int i = 0; i < size; i++) {
-
-        currentString[currentLength] = input[i];
-        currentLength++;
-
-        int code = findBytesCode(currentString, currentLength);
-        if (code != -1) {
-            lastFoundCode = code;
-        } else {
-            if (lastFoundCode != -1) {
-                output[outputIndex++] = lastFoundCode;
-                printf("Compressing: Code %d at index %d\n", lastFoundCode, outputIndex - 1); // Debug statement
+    // Start compression
+    int i = 0;
+    while (i < size) {
+        // Find the longest sequence in the dictionary
+        int sequenceLength = 1;
+        int code = -1;
+        while (i + sequenceLength <= size) {
+            int newCode = findBytesCode(&input[i], sequenceLength);
+            if (newCode != -1) {
+                code = newCode;
+                sequenceLength++;
+            } else {
+                break;
             }
-            if (currentLength <= MAX_CHAR) {
-                addBytesToDictionary(currentString, currentLength);
-            }
-            currentString[0] = input[i];
-            currentLength = 1;
-            lastFoundCode = findBytesCode(currentString, currentLength);
         }
+        sequenceLength--;
+
+        // Output the code for the longest found sequence
+        if (code != -1) {
+            output[outputIndex++] = code;
+        }
+
+        // Add new sequence to the dictionary
+        if (i + sequenceLength < size) {
+            addBytesToDictionary(&input[i], sequenceLength + 1);
+        }
+
+        i += sequenceLength;
     }
 
-    if (lastFoundCode != -1) {
-        output[outputIndex++] = lastFoundCode;
-        printf("Compressing: Code %d at index %d\n", lastFoundCode, outputIndex - 1); // Debug statement
-    }
-
+    // Set the output size
     *outputSize = outputIndex;
+
+    // Resize output array to actual size
+    output = (int*)realloc(output, (*outputSize) * sizeof(int));
+    if (!output) {
+        fprintf(stderr, "Memory allocation failed for output resizing.\n");
+        return NULL;
+    }
+
+    // Clean up dictionary
     freeDictionary();
+
     return output;
 }
-
-
 
 
 unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) {
@@ -72,7 +87,7 @@ unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) 
 
     for (int i = 0; i < size; i++) {
         int code = codes[i];
-        printf("Decompressing: Code %d at index %d\n", code, i);
+        //printf("Decompressing: Code %d at index %d\n", code, i);
 
         if (code < 0 || code >= nextAvailableCode) {
             free(decompressed);
@@ -82,7 +97,7 @@ unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) 
         }
 
         if (outputIndex + table[code]->length >= bufferSize) {
-            bufferSize *= 2;
+            bufferSize *= 4;  // Increase the buffer size more aggressively
             unsigned char* temp = realloc(decompressed, bufferSize);
             if (!temp) {
                 free(decompressed);
@@ -123,12 +138,21 @@ unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) 
     return decompressed;
 }
 
-
+void clearDictionary() {
+    for (int i = MAX_CHAR; i < nextAvailableCode; i++) {
+        if (table[i]) {
+            free(table[i]->bytes);
+            free(table[i]);
+            table[i] = NULL;
+        }
+    }
+    nextAvailableCode = MAX_CHAR;
+}
 
 void addBytesToDictionary(const unsigned char* bytes, int length) {
     if (nextAvailableCode >= TABLE_SIZE) {
-        fprintf(stderr, "Dictionary is full, cannot add more entries.\n");
-        return; // Dictionary full, cannot add more
+        clearDictionary(); // Clear and reinitialize the dictionary
+        fprintf(stderr, "Dictionary was full and has been cleared.\n");
     }
     table[nextAvailableCode] = (DictionaryEntry*)malloc(sizeof(DictionaryEntry));
     table[nextAvailableCode]->bytes = (unsigned char*)malloc(length);
@@ -202,6 +226,7 @@ unsigned char* readBinaryPayloadData(const char* filename, int* size) {
     return data;
 }
 
+/*
 // Function to load the original compressed payload from a file
 int* loadOriginalCompressedPayload(const char* filename, int* size) {
     FILE* file = fopen(filename, "rb");
@@ -234,3 +259,4 @@ int* loadOriginalCompressedPayload(const char* filename, int* size) {
     fclose(file);
     return data;
 }
+ */
