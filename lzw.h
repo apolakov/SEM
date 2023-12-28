@@ -29,4 +29,5 @@ void resetDictionary();
 
 
 
+
 #endif //SEMESTRALKAPLSPLSPLS_LZW_H

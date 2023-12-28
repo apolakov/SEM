@@ -48,14 +48,15 @@ int extractAndDecompressPayload(const char* inputImageFilename, const char* outp
 int* extractPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize);
 unsigned int extractSizeFromPixelData(const Pixel* pixels, int numPixels);
 Pixel* readPixelData(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, int* pixelDataSize);
-void embedPayload(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize);
+//void embedPayload(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize);
+int embedPayload(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize);
 int embedFileType(Pixel* pixels, const char* fileType);
 void embedSize(Pixel* pixels, unsigned int size);
 int extractFileType(Pixel* pixels, char* fileType);
 void setLSB(unsigned char* byte, int bitValue);
 int getBit(const int* data, int size, int position);
-
-
+//unsigned short* extractPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize);
+//int getBit(const unsigned short* data, int size, int position);
 
 
 

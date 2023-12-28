@@ -31,36 +31,40 @@ int writeCompressedPayloadToFile(const char* filename, const int* compressedPayl
 
 
 int main() {
-    const char* imageFilename = "../bmp24.bmp";
-    const char* payloadFilename = "../apple.png";
-    const char* outputImageFilename = "../output.bmp";
-    const char* decompressedPayloadFilename = "../decompressed_payload.png";
+        const char* imageFilename = "../Adam.bmp";
+        const char* payloadFilename = "../test.png";
+        const char* outputImageFilename = "../output.bmp";
+        const char* decompressedPayloadFilename = "../decompressed_payload.png";
 
-    int type=1; //bmp=2, png=3
+        int type = 1; /* bmp=2, png=3 */
+        int payloadSize;
+        unsigned char* payloadData;
+        int* compressedPayload;
+        int compressedSize;
+        int extractionSuccess;
 
-    // Step 1: Determine file type and check if it's 24-bit
-    printf("start step1\n");
-    type =determineFileTypeAndCheck24Bit(imageFilename);
-    if( type == 1) {
-        fprintf(stderr, "File is not a 24-bit BMP or PNG.\n");
-        return 1;
-    }
+        /* Step 1: Determine file type and check if it's 24-bit */
+        printf("start step1\n");
+        type = determineFileTypeAndCheck24Bit(imageFilename);
+        if (type == 1) {
+            fprintf(stderr, "File is not a 24-bit BMP or PNG.\n");
+            return 1;
+        }
 
-    // Step 2: Load payload
-    printf("start step2\n");
-    int payloadSize;
-    unsigned char* payloadData = readBinaryPayloadData(payloadFilename, &payloadSize);
-    if (!payloadData) {
-        fprintf(stderr, "Failed to load payload data.\n");
-        return 1;
-    }
+        /* Step 2: Load payload */
+        printf("start step2\n");
+        payloadData = readBinaryPayloadData(payloadFilename, &payloadSize);
+        if (!payloadData) {
+            fprintf(stderr, "Failed to load payload data.\n");
+            return 1;
+        }
 
 
     if(type==2){
 
         printf("start step3\n");
-        int compressedSize;
-        int* compressedPayload = lzwCompress(payloadData, payloadSize, &compressedSize);
+        compressedPayload = lzwCompress(payloadData, payloadSize, &compressedSize);
+        printf("MAIN compressed - %d",compressedSize);
         free(payloadData); // Assume payloadData is no longer needed after this point
 
         if (!compressedPayload) {
@@ -88,7 +92,7 @@ int main() {
 
         // Step 5: Extract and decompress payload from image
         printf("start step5\n");
-        int extractionSuccess = extractAndDecompressPayload(outputImageFilename, decompressedPayloadFilename);
+        extractionSuccess = extractAndDecompressPayload(outputImageFilename, decompressedPayloadFilename);
         if (extractionSuccess != 0) {
             fprintf(stderr, "Failed to extract and decompress payload from image.\n");
             return 1;
@@ -110,7 +114,7 @@ int main() {
 
         // Step 5: Extract and decompress payload from image
         printf("start step5\n");
-        int extractionSuccess = extractAndDecompressPayloadFromPNG(outputImageFilename, decompressedPayloadFilename);
+        extractionSuccess = extractAndDecompressPayloadFromPNG(outputImageFilename, decompressedPayloadFilename);
         if (extractionSuccess != 0) {
             fprintf(stderr, "Failed to extract and decompress payload from image.\n");
             return 1;
