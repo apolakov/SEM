@@ -31,7 +31,7 @@ int embedPayloadInPNG(const char* imageFilename, const char* outputImageFilename
     }
 
     printf("Calculating the compressed payload byte size...\n");
-    size_t payloadByteSize = compressedPayloadSize * sizeof(int); // Compressed payload size in bytes
+    size_t payloadByteSize = (compressedPayloadSize * 12 + 7) / 8; // Convert 12-bit codes to bytes, rounding up
     size_t payloadBitSize = payloadByteSize * 8; // Compressed payload size in bits
     printf("Compressed payload byte size: %zu, Payload bit size: %zu\n", payloadByteSize, payloadBitSize);
 
@@ -97,8 +97,7 @@ int extractAndDecompressPayloadFromPNG(const char* inputImageFilename, const cha
     int compressedSizeBytes = compressedSizeBits / 8;
     printf("Decompressing the payload. Size (bytes): %d\n", compressedSizeBytes);
     int decompressedPayloadSize;
-    unsigned char* decompressedPayload = lzwDecompress(compressedPayload, compressedSizeBytes / sizeof(int), &decompressedPayloadSize);    free(compressedPayload);
-    if (!decompressedPayload) {
+    unsigned char* decompressedPayload = lzwDecompress(compressedPayload, compressedSizeBits, &decompressedPayloadSize);    if (!decompressedPayload) {
         fprintf(stderr, "Decompression failed.\n");
         free(pixels);
         return 1;
@@ -331,44 +330,34 @@ int writePNG(const char* filename, Pixel* pixels, int width, int height) {
 
 
 
-int embedPayloadInPixels(Pixel* pixels, int width, int height, const unsigned char* payload, size_t payloadByteSize) {
-    if (!pixels || !payload) {
+int embedPayloadInPixels(Pixel* pixels, int width, int height, const int* compressedPayload, int compressedPayloadSize) {
+    if (!pixels || !compressedPayload) {
         fprintf(stderr, "Null pointer passed to embedPayloadInPixels.\n");
         return 1;
     }
 
-    size_t payloadBits = payloadByteSize * 8;
+    printf("compressedpayloadsizze %d\n", compressedPayloadSize);
+    size_t payloadBits = compressedPayloadSize * 12; // 12 bits per code
     size_t imageCapacity = (size_t)width * height;
-
-    // Debug: Print payload size
-    printf("Embedding payload: Byte size: %zu, Bit size: %zu image capacity is %zu\n", payloadByteSize, payloadBits, imageCapacity);
 
     if (payloadBits + 32 > imageCapacity) {
         fprintf(stderr, "Image does not have enough capacity for the payload. Available: %zu, Required: %zu\n", imageCapacity, payloadBits + 32);
         return 1;
     }
 
-    printf("Embedding payload: %zu bits into an image of capacity: %zu pixels.\n", payloadBits, imageCapacity);
-
-    for (size_t i = 0; i < payloadBits; ++i) {
-        size_t byteIndex = i / 8;
-        size_t bitIndex = 7 - (i % 8);
-        size_t pixelIndex = i + 32; // Skip the first 32 pixels for the size storage
-
-        if (pixelIndex >= imageCapacity) {
-            fprintf(stderr, "Pixel index out of bounds. Index: %zu, Capacity: %zu\n", pixelIndex, imageCapacity);
-            return 1;
+    size_t bitPosition = 0;
+    for (size_t i = 0; i < compressedPayloadSize; ++i) {
+        for (size_t j = 0; j < 12; ++j) {
+            size_t pixelIndex = bitPosition + 32; // Skip the first 32 pixels for the size storage
+            if (pixelIndex >= imageCapacity) {
+                fprintf(stderr, "Pixel index out of bounds. Index: %zu, Capacity: %zu\n", pixelIndex, imageCapacity);
+                return 1;
+            }
+            unsigned char bit = (compressedPayload[i] >> j) & 1;
+            embedBit(&pixels[pixelIndex], bit);
+            bitPosition++;
         }
-
-        unsigned char bit = (payload[byteIndex] >> bitIndex) & 1;
-        pixels[pixelIndex].blue = (pixels[pixelIndex].blue & 0xFE) | bit;
-
-        //printf("Embedding bit %u at pixel index %zu.\n", bit, pixelIndex);
     }
-    printf("Embedding payload: Byte size: %zu, Bit size: %zu image capacity is %zu\n", payloadByteSize, payloadBits, imageCapacity);
-
-
-    printf("Payload embedding completed successfully.\n");
     return 0;
 }
 
@@ -381,84 +370,46 @@ void embedBit(Pixel* pixel, size_t bit) {
 }
 
 
-/*
-int extractPayloadFromPixels(const Pixel* pixels, int width, int height, unsigned char** outPayload, size_t* outPayloadSize) {
-    // Assuming the payload size is stored in the first 32 pixels
-    size_t payloadSizeBits = 32;
-    size_t payloadSize = 0;
-    for (size_t i = 0; i < payloadSizeBits; ++i) {
-        size_t bit = (pixels[i].blue & 1); // Extract LSB
-        payloadSize |= (bit << i);
-    }
 
-    // Allocate memory for the payload
-    *outPayloadSize = payloadSize;
-    *outPayload = (unsigned char*)malloc(payloadSize);
-    if (*outPayload == NULL) {
-        fprintf(stderr, "Memory allocation failed for payload extraction.\n");
-        return 1;
-    }
-
-    // Extract the payload from the image
-    for (size_t i = 0; i < payloadSize * 8; ++i) {
-        size_t byteIndex = i / 8;
-        size_t bitPosition = i % 8;
-        size_t pixelIndex = i + payloadSizeBits; // Start after the payload size info
-        size_t bit = (pixels[pixelIndex].blue & 1); // Extract LSB
-        (*outPayload)[byteIndex] |= (bit << bitPosition);
-    }
-
-    return 0; // Success
-}
-
- */
-
-int extractPayloadFromPixels(const Pixel* pixels, int width, int height, unsigned char** outPayload, size_t* outPayloadSizeBits) {
-    if (!pixels || !outPayload || !outPayloadSizeBits) {
+int extractPayloadFromPixels(const Pixel* pixels, int width, int height, int** outCompressedPayload, int* outCompressedPayloadSize) {
+    if (!pixels || !outCompressedPayload || !outCompressedPayloadSize) {
         fprintf(stderr, "Null pointer passed to extractPayloadFromPixels.\n");
         return 1;
     }
 
     unsigned int payloadSizeBits = extractSizeFromPixelDataPNG(pixels);
-    size_t payloadByteSize = (payloadSizeBits + 7) / 8; // Convert bits to bytes
+    *outCompressedPayloadSize = (payloadSizeBits + 11) / 12; // Convert bits to number of 12-bit codes
     size_t totalPixels = (size_t)width * height;
-
-    printf("Extracting payload... Size (bits): %u, Total Pixels: %zu\n", payloadSizeBits, totalPixels);
 
     if (payloadSizeBits + 32 > totalPixels * 8) {
         fprintf(stderr, "Payload size exceeds image capacity.\n");
         return 1;
     }
 
-    *outPayload = (unsigned char*)malloc(payloadByteSize);
-    if (*outPayload == NULL) {
-        fprintf(stderr, "Failed to allocate memory for payload extraction.\n");
+    *outCompressedPayload = (int*)malloc(*outCompressedPayloadSize * sizeof(int));
+    if (*outCompressedPayload == NULL) {
+        fprintf(stderr, "Failed to allocate memory for compressed payload extraction.\n");
         return 1;
     }
 
-    memset(*outPayload, 0, payloadByteSize);
-    size_t startPixelIndex = 32; // Start after the size pixels
-
-
+    memset(*outCompressedPayload, 0, *outCompressedPayloadSize * sizeof(int));
+    size_t bitPosition = 0;
     for (size_t i = 0; i < payloadSizeBits; ++i) {
-        size_t byteIndex = i / 8;
-        size_t bitIndex = 7 - (i % 8);
-        size_t pixelIndex = startPixelIndex + i;
+        size_t codeIndex = i / 12;
+        size_t bitIndexInCode = i % 12;
+        size_t pixelIndex = i + 32; // Start after the size pixels
 
         if (pixelIndex >= totalPixels) {
             fprintf(stderr, "Pixel index out of bounds. Index: %zu, Total Pixels: %zu\n", pixelIndex, totalPixels);
-            free(*outPayload);
-            *outPayload = NULL;
+            free(*outCompressedPayload);
+            *outCompressedPayload = NULL;
             return 1;
         }
 
-        unsigned char bit = pixels[pixelIndex].blue & 1;
-        (*outPayload)[byteIndex] |= (bit << bitIndex);
-        //printf("Extracting bit %u from pixel index %zu.\n", bit, pixelIndex);
+        unsigned char bit = extractBit(&pixels[pixelIndex]);
+        (*outCompressedPayload)[codeIndex] |= (bit << bitIndexInCode);
     }
 
-    *outPayloadSizeBits = payloadSizeBits;
-    printf("Payload extraction completed successfully.\n");
     return 0;
 }
 

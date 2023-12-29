@@ -44,12 +44,14 @@ int embedPayloadInImage(const char* imageFilename, const char* outputImageFilena
 
     printf("Size of int: %zu bytes\n", sizeof(int));
     printf("CompressedSize I am using in line : int payloadBits = compressedSize * sizeof(int) * 8; is : %d\n", compressedSize);
-    int payloadBits = compressedSize * sizeof(int) * 8; // Payload size in bits
+
+    int payloadBits = compressedSize *12; // Payload size in bits
+    printf("Compressed payload size is %d \n", payloadBits/1024);
     int availableBits = numPixels - 32; // Available bits for payload, minus 32 for the size
     printf("Payload size in bits (payloadBits): %d\n", payloadBits);
 
     if (payloadBits > availableBits) {
-        fprintf(stderr, "Not enough space in the image for the payload.\n");
+        fprintf(stderr, "Not enough space in the image for the payload. Payload is %d and avaliable is %d\n",payloadBits,availableBits);
         free(pixels);
         return 1;
     }
@@ -60,35 +62,7 @@ int embedPayloadInImage(const char* imageFilename, const char* outputImageFilena
 
     int totalBits = payloadBits; // Define totalBits based on payloadBits
 
-    // New embedding logic
-    int bitPosition = 0;
-    for (int i = 32; bitPosition < totalBits; ++i) {
-        if (i >= numPixels) {
-            fprintf(stderr, "Error: Reached the end of the pixel array. i: %d, numPixels: %d\n", i, numPixels);
-            break;
-        }
-
-        int bit = getBit(compressedPayload, compressedSize, bitPosition);
-        if (bit == -1) {
-            fprintf(stderr, "Error: Bit extraction failed at position %d\n", bitPosition);
-            break;
-        }
-
-        setLSB(&pixels[i].blue, bit);
-        bitPosition++;
-
-        if (bitPosition >= totalBits) {
-            printf("Successfully embedded all bits. Last bit position: %d\n", bitPosition);
-            break;
-        }
-    }
-
-    if (bitPosition != totalBits) {
-        fprintf(stderr, "Error: Not all payload bits were embedded. Embedded: %d, Expected: %d\n", bitPosition, totalBits);
-        free(pixels);
-        return 1;
-    }
-
+    embed12BitPayload(pixels, numPixels, compressedPayload, compressedSize);
 
 
     // Save the modified image
@@ -126,7 +100,7 @@ int extractAndDecompressPayload(const char* inputImageFilename, const char* outp
     // Step 2: Extract compressed payload from pixel data
     int compressedPayloadSize;
     printf("extractAndDecompressPayload-> start extracting payload\n");
-    int* compressedPayload = extractPayload(pixels , (pixelDataSize / sizeof(Pixel)), &compressedPayloadSize);
+    int* compressedPayload = extract12BitPayload(pixels, (pixelDataSize / sizeof(Pixel)), &compressedPayloadSize);
     free(pixels);
     if (!compressedPayload) {
         fprintf(stderr, "Failed to extract payload.\n");
@@ -158,7 +132,7 @@ int extractAndDecompressPayload(const char* inputImageFilename, const char* outp
     return 0; // Success
 }
 
-
+/*
 int* extractPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize) {
     if (numPixels < 32) {
         fprintf(stderr, "Not enough pixels to extract the payload size.\n");
@@ -200,6 +174,7 @@ int* extractPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSi
 
     return payload; // Return the pointer to the extracted payload
 }
+ */
 
 
 unsigned int extractSizeFromPixelData(const Pixel* pixels, int numPixels) {
@@ -257,47 +232,6 @@ Pixel* readPixelData(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, int
     return pixelData;
 }
 
-int embedPayload(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize) {
-    int totalBits = compressedSize * sizeof(int) * 8;
-
-    int availableBits = (numPixels - 32) * 8; // Exclude first 32 pixels for metadata
-
-    if (totalBits > availableBits) {
-        fprintf(stderr, "Error: Not enough space in the image to embed the payload.\n");
-        return -1;
-    }
-
-    int bitPosition = 0;
-    for (int i = 32; bitPosition < totalBits; ++i) {
-
-        if (i >= numPixels) {
-            fprintf(stderr, "Error: Reached the end of the pixel array. i: %d, numPixels: %d\n", i, numPixels);
-            break;
-        }
-
-        int bit = getBit(compressedPayload, compressedSize, bitPosition);
-        if (bit == -1) {
-            fprintf(stderr, "Error: Bit extraction failed at position %d\n", bitPosition);
-            break;
-        }
-
-        setLSB(&pixels[i].blue, bit);
-        bitPosition++;
-
-        if (bitPosition >= totalBits) {
-            printf("Successfully embedded all bits. Last bit position: %d\n", bitPosition);
-            break;
-        }
-    }
-
-    if (bitPosition != totalBits) {
-        fprintf(stderr, "Error: Not all payload bits were embedded. Embedded: %d, Expected: %d\n", bitPosition, totalBits);
-        return -1;
-    }
-
-    return bitPosition;
-}
-
 
 
 // Embedding the size
@@ -330,4 +264,63 @@ int getBit(const int* data, int size, int position) {
     }
 
     return (data[byteIndex] >> bitIndex) & 1;
+}
+
+void embed12BitPayload(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize) {
+    int totalBits = compressedSize * 12; // 12 bits per code
+
+    int bitPosition = 0;
+    for (int i = 32; bitPosition < totalBits; ++i) {
+        if (i >= numPixels) {
+            fprintf(stderr, "Error: Reached the end of the pixel array. i: %d, numPixels: %d\n", i, numPixels);
+            break;
+        }
+
+        int payloadIndex = bitPosition / 12;
+        int bitIndexInPayload = bitPosition % 12;
+        int bit = (compressedPayload[payloadIndex] >> bitIndexInPayload) & 1;
+
+        setLSB(&pixels[i].blue, bit);
+        bitPosition++;
+
+        if (bitPosition >= totalBits) {
+            printf("Successfully embedded all bits. Last bit position: %d\n", bitPosition);
+            break;
+        }
+    }
+
+    // Check if all bits were embedded
+    if (bitPosition != totalBits) {
+        fprintf(stderr, "Error: Not all payload bits were embedded. Embedded: %d, Expected: %d\n", bitPosition, totalBits);
+    }
+}
+
+int* extract12BitPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize) {
+    unsigned int payloadBitSize = extractSizeFromPixelData(pixels, numPixels);
+
+    *compressedPayloadSize = (payloadBitSize + 11) / 12; // Calculate the number of 12-bit codes
+
+    int* payload = (int*)malloc(*compressedPayloadSize * sizeof(int));
+    if (!payload) {
+        fprintf(stderr, "Memory allocation failed for payload extraction.\n");
+        return NULL;
+    }
+
+    memset(payload, 0, *compressedPayloadSize * sizeof(int));
+
+    int bitPosition = 0;
+    for (int i = 32; i < numPixels; ++i) {
+        int payloadIndex = bitPosition / 12;
+        int bitIndexInPayload = bitPosition % 12;
+
+        int bit = pixels[i].blue & 1;
+        payload[payloadIndex] |= (bit << bitIndexInPayload);
+
+        bitPosition++;
+        if (bitPosition >= payloadBitSize) {
+            break;
+        }
+    }
+
+    return payload;
 }

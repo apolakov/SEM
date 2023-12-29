@@ -59,7 +59,7 @@ int getBit(const int* data, int size, int position);
 //int getBit(const unsigned short* data, int size, int position);
 
 
-
-
+int* extract12BitPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize);
+void embed12BitPayload(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize);
 
 #endif //SEMESTRALKAPLSPLSPLS_BMP_H

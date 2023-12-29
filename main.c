@@ -21,20 +21,44 @@ int writeCompressedPayloadToFile(const char* filename, const int* compressedPayl
         return 1;
     }
 
-    // Write the size first, then the compressed data
-    fwrite(&compressedSize, sizeof(compressedSize), 1, file);
-    fwrite(compressedPayload, sizeof(int), compressedSize, file);
+    // Calculate the total number of bytes needed for the 12-bit packed data
+    int totalBytes = (compressedSize * 12 + 7) / 8;  // Round up to the nearest byte
+    unsigned char* packedData = malloc(totalBytes);
+    if (!packedData) {
+        fprintf(stderr, "Memory allocation failed for packed data.\n");
+        fclose(file);
+        return 1;
+    }
 
+    // Pack the 12-bit codes into the buffer
+    int bitPosition = 0;
+    for (int i = 0; i < compressedSize; i++) {
+        int code = compressedPayload[i];
+        for (int j = 0; j < 12; j++) {
+            int byteIndex = (bitPosition / 8);
+            int bitIndex = bitPosition % 8;
+            packedData[byteIndex] |= ((code >> j) & 1) << bitIndex;
+            bitPosition++;
+        }
+    }
+
+    // Write the size (in terms of number of 12-bit codes) and packed data
+    fwrite(&compressedSize, sizeof(compressedSize), 1, file);
+    fwrite(packedData, 1, totalBytes, file);
+
+    // Clean up
+    free(packedData);
     fclose(file);
     return 0;
 }
 
 
+
 int main() {
-    const char* imageFilename = "../Adam.bmp";
-    const char* payloadFilename = "../test.png";
-    const char* outputImageFilename = "../output.bmp";
-    const char* decompressedPayloadFilename = "../decompressed_payload.png";
+    const char* imageFilename = "../png24.png";
+    const char* payloadFilename = "../k.txt";
+    const char* outputImageFilename = "../output.png";
+    const char* decompressedPayloadFilename = "../decompressed_payload.txt";
 
     int type = 1; /* bmp=2, png=3 */
     int payloadSize;
