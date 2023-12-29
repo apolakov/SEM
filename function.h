@@ -22,7 +22,7 @@ typedef struct {
 
 
 
-unsigned char* lzwDecompress(const int *codes, int size, int* decompressedSize);
+
 int comparePayloads(const int* payload1, const int* payload2, int size);
 int* loadOriginalCompressedPayload(const char* filename, int* size);
 

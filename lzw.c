@@ -8,7 +8,7 @@
 #include "bmp.h"
 
 #define MAX_CHAR 256
-#define TABLE_SIZE 300000
+#define TABLE_SIZE 4096
 
 
 DictionaryEntry* table[TABLE_SIZE];
@@ -48,6 +48,17 @@ int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
             currentString[0] = input[i];
             currentLength = 1;
             lastFoundCode = findBytesCode(currentString, currentLength);
+        }
+        if (outputIndex >= TABLE_SIZE) {
+            int newSize = outputIndex * 2;
+            int* temp = realloc(output, newSize * sizeof(int));
+            if (!temp) {
+                fprintf(stderr, "Memory reallocation failed during compression.\n");
+                free(output);
+                freeDictionary();
+                return NULL;
+            }
+            output = temp;
         }
     }
 
@@ -140,9 +151,13 @@ unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) 
 }
 
 void addBytesToDictionary(const unsigned char* bytes, int length) {
+
+    printf("Adding to dictionary, nextAvailableCode: %d\n", nextAvailableCode);
     if (nextAvailableCode >= TABLE_SIZE) {
-        fprintf(stderr, "Dictionary is full, cannot add more entries.\n");
-        return; /* Dictionary full, cannot add more */
+        fprintf(stderr, "Dictionary is full, resetting.\n");
+        resetAndReinitializeDictionary();
+        printf("Dictionary reset and reinitialized.\n");
+
     }
 
     table[nextAvailableCode] = (DictionaryEntry*)malloc(sizeof(DictionaryEntry));
@@ -242,4 +257,21 @@ unsigned char* readBinaryPayloadData(const char* filename, int* size) {
 
     fclose(file);
     return data;
+}
+
+void resetDictionary() {
+    int i;
+    for (i = 0; i < TABLE_SIZE; i++) {
+        if (table[i]) {
+            free(table[i]->bytes);
+            free(table[i]);
+            table[i] = NULL;
+        }
+    }
+    nextAvailableCode = MAX_CHAR;
+}
+
+void resetAndReinitializeDictionary() {
+    resetDictionary();
+    initializeDictionary();
 }

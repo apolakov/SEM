@@ -31,33 +31,33 @@ int writeCompressedPayloadToFile(const char* filename, const int* compressedPayl
 
 
 int main() {
-        const char* imageFilename = "../Adam.bmp";
-        const char* payloadFilename = "../test.png";
-        const char* outputImageFilename = "../output.bmp";
-        const char* decompressedPayloadFilename = "../decompressed_payload.png";
+    const char* imageFilename = "../Adam.bmp";
+    const char* payloadFilename = "../test.png";
+    const char* outputImageFilename = "../output.bmp";
+    const char* decompressedPayloadFilename = "../decompressed_payload.png";
 
-        int type = 1; /* bmp=2, png=3 */
-        int payloadSize;
-        unsigned char* payloadData;
-        int* compressedPayload;
-        int compressedSize;
-        int extractionSuccess;
+    int type = 1; /* bmp=2, png=3 */
+    int payloadSize;
+    unsigned char* payloadData;
+    int* compressedPayload;
+    int compressedSize;
+    int extractionSuccess;
 
-        /* Step 1: Determine file type and check if it's 24-bit */
-        printf("start step1\n");
-        type = determineFileTypeAndCheck24Bit(imageFilename);
-        if (type == 1) {
-            fprintf(stderr, "File is not a 24-bit BMP or PNG.\n");
-            return 1;
-        }
+    /* Step 1: Determine file type and check if it's 24-bit */
+    printf("start step1\n");
+    type = determineFileTypeAndCheck24Bit(imageFilename);
+    if (type == 1) {
+        fprintf(stderr, "File is not a 24-bit BMP or PNG.\n");
+        return 1;
+    }
 
-        /* Step 2: Load payload */
-        printf("start step2\n");
-        payloadData = readBinaryPayloadData(payloadFilename, &payloadSize);
-        if (!payloadData) {
-            fprintf(stderr, "Failed to load payload data.\n");
-            return 1;
-        }
+    /* Step 2: Load payload */
+    printf("start step2\n");
+    payloadData = readBinaryPayloadData(payloadFilename, &payloadSize);
+    if (!payloadData) {
+        fprintf(stderr, "Failed to load payload data.\n");
+        return 1;
+    }
 
 
     if(type==2){
