@@ -56,11 +56,15 @@ int writeCompressedPayloadToFile(const char* filename, const int* compressedPayl
 
 int main() {
     const char* imageFilename = "../png24.png";
-    const char* payloadFilename = "../k.txt";
+    const char* payloadFilename = "../aaa.jpg";
     const char* outputImageFilename = "../output.png";
-    const char* decompressedPayloadFilename = "../decompressed_payload.txt";
+    const char* decompressedPayloadFilename = "../decompressed_payload.jpg";
+
+
 
     int type = 1; /* bmp=2, png=3 */
+
+
     int payloadSize;
     unsigned char* payloadData;
     int* compressedPayload;
