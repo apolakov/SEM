@@ -7,6 +7,7 @@
 #include "bmp.h"
 #include "pngs.h"
 #include <png.h>
+#include "checksuma.h"
 
 #define TABLE_SIZE 16384
 #define MAX_CHAR 256
@@ -52,6 +53,7 @@ int writeCompressedPayloadToFile(const char* filename, const int* compressedPayl
     return 0;
 }
 
+#define TEST_PAYLOAD_SIZE 300 // Example size of your test payload
 
 
 int main() {
@@ -125,12 +127,7 @@ int main() {
             fprintf(stderr, "Failed to extract and decompress payload from image.\n");
             return 1;
         }
-
-
-
     }
-
-
     if(type==3){
         printf("start step4\n");
         printf("Original Playload size in byets: %d\n", payloadSize);

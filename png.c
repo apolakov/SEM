@@ -5,6 +5,7 @@
 #include "bmp.h"
 #include "lzw.h"
 #include <string.h>
+#include "checksuma.h"
 
 int embedPayloadInPNG(const char* imageFilename, const char* outputImageFilename, const unsigned char* originalPayload, int originalPayloadSize) {
     if (!imageFilename || !outputImageFilename || !originalPayload) {
@@ -29,6 +30,10 @@ int embedPayloadInPNG(const char* imageFilename, const char* outputImageFilename
         free(compressedPayload); // Clean up compressed payload
         return 1;
     }
+
+    printf("Embedding the signature into the image...\n");
+    embedSignature(imagePixels);
+
 
     printf("Calculating the compressed payload byte size...\n");
     size_t payloadByteSize = (compressedPayloadSize * 12 + 7) / 8; // Convert 12-bit codes to bytes, rounding up
@@ -82,6 +87,13 @@ int extractAndDecompressPayloadFromPNG(const char* inputImageFilename, const cha
     printf("Reading the PNG image: %s\n", inputImageFilename);
     if (readPNG(inputImageFilename, &pixels, &width, &height) != 0) {
         fprintf(stderr, "Failed to read PNG file: %s\n", inputImageFilename);
+        return 1;
+    }
+
+    // Check if the signature matches
+    if (!extractAndCheckSignature(pixels)) {
+        fprintf(stderr, "Signature mismatch or not found in PNG.\n");
+        free(pixels);
         return 1;
     }
 
@@ -340,7 +352,9 @@ int embedPayloadInPixels(Pixel* pixels, int width, int height, const int* compre
     size_t payloadBits = compressedPayloadSize * 12; // 12 bits per code
     size_t imageCapacity = (size_t)width * height;
 
-    if (payloadBits + 32 > imageCapacity) {
+    size_t startPixel = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS; // Adjust for signature and size field
+
+    if (payloadBits + startPixel > imageCapacity) {
         fprintf(stderr, "Image does not have enough capacity for the payload. Available: %zu, Required: %zu\n", imageCapacity, payloadBits + 32);
         return 1;
     }
@@ -348,7 +362,7 @@ int embedPayloadInPixels(Pixel* pixels, int width, int height, const int* compre
     size_t bitPosition = 0;
     for (size_t i = 0; i < compressedPayloadSize; ++i) {
         for (size_t j = 0; j < 12; ++j) {
-            size_t pixelIndex = bitPosition + 32; // Skip the first 32 pixels for the size storage
+            size_t pixelIndex = bitPosition + startPixel;
             if (pixelIndex >= imageCapacity) {
                 fprintf(stderr, "Pixel index out of bounds. Index: %zu, Capacity: %zu\n", pixelIndex, imageCapacity);
                 return 1;
@@ -377,11 +391,14 @@ int extractPayloadFromPixels(const Pixel* pixels, int width, int height, int** o
         return 1;
     }
 
+    size_t startPixel = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS; // Adjust for signature and size field
+
+
     unsigned int payloadSizeBits = extractSizeFromPixelDataPNG(pixels);
     *outCompressedPayloadSize = (payloadSizeBits + 11) / 12; // Convert bits to number of 12-bit codes
     size_t totalPixels = (size_t)width * height;
 
-    if (payloadSizeBits + 32 > totalPixels * 8) {
+    if (payloadSizeBits  + startPixel > totalPixels * 8) {
         fprintf(stderr, "Payload size exceeds image capacity.\n");
         return 1;
     }
@@ -397,7 +414,7 @@ int extractPayloadFromPixels(const Pixel* pixels, int width, int height, int** o
     for (size_t i = 0; i < payloadSizeBits; ++i) {
         size_t codeIndex = i / 12;
         size_t bitIndexInCode = i % 12;
-        size_t pixelIndex = i + 32; // Start after the size pixels
+        size_t pixelIndex = i + startPixel; // Start after the size pixels
 
         if (pixelIndex >= totalPixels) {
             fprintf(stderr, "Pixel index out of bounds. Index: %zu, Total Pixels: %zu\n", pixelIndex, totalPixels);
@@ -423,10 +440,13 @@ void embedSizePNG(Pixel* pixels, unsigned int sizeInBits) {
         return;
     }
 
+    int startIndex = SIGNATURE_SIZE_BITS; // Start index after the signature
+
+
     printf("Embedding payload size in bits: %u\n", sizeInBits);
     for (int i = 0; i < 32; ++i) {
         unsigned int bit = (sizeInBits >> (31 - i)) & 1; // Extract bits from MSB to LSB
-        pixels[i].blue = (pixels[i].blue & 0xFE) | bit; // Embed the bit in the LSB
+        pixels[startIndex + i].blue = (pixels[startIndex + i].blue & 0xFE) | bit; // Embed the bit in the LSB
         printf("SIZE->Embedding bit %u at pixel index %d, resulting blue value: %d\n", bit, i, pixels[i].blue);
     }
     printf("I am trying to embed size %d Bits",sizeInBits);
@@ -438,11 +458,13 @@ unsigned int extractSizeFromPixelDataPNG(const Pixel* pixels) {
         fprintf(stderr, "Null pointer passed to extractSizeFromPixelDataPNG.\n");
         return 0;
     }
+    int startIndex = SIGNATURE_SIZE_BITS; // Start index after the signature
+
 
     unsigned int size = 0;
     printf("Extracting payload size from image...\n");
     for (int i = 0; i < 32; ++i) {
-        unsigned int bit = extractBit(&pixels[i]);
+        unsigned int bit = extractBit(&pixels[startIndex + i]);
         size |= (bit << (31 - i)); // Correct bit position
         //printf("Extracted bit %u from pixel index %d, resulting size so far: %u\n", bit, i, size);
     }

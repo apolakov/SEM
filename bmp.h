@@ -7,6 +7,14 @@
 
 
 #include <stdio.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+#define SIGNATURE_SIZE_BITS 48
+#define CRC_SIZE_BITS 32 // 4 bytes (32 bits)
+#define SIZE_FIELD_BITS     32  // Size field is always 32 bits
+
 
 typedef struct {
     unsigned char blue;
@@ -42,7 +50,7 @@ typedef struct {
 
 
 
-int embedPayloadInImage(const char* imageFilename, const char* outputImageFilename, const int* compressedPayload, int compressedSize, const char* payloadFilename);
+//int embedPayloadInImage(const char* imageFilename, const char* outputImageFilename, const int* compressedPayload, int compressedSize, const char* payloadFilename);
 const char* getFileExtension(const char* filename);
 int extractAndDecompressPayload(const char* inputImageFilename, const char* outputPayloadBaseFilename);
 int* extractPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize);
@@ -57,9 +65,15 @@ void setLSB(unsigned char* byte, int bitValue);
 int getBit(const int* data, int size, int position);
 //unsigned short* extractPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize);
 //int getBit(const unsigned short* data, int size, int position);
+void embedSignatureAndCRC(Pixel* pixels, int numPixels, const uint8_t* signature, int signatureSize, const int* compressedPayload, int compressedSize);
 
 
 int* extract12BitPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize);
 void embed12BitPayload(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize);
+//int embedPayloadInImage(const char* imageFilename, const char* outputImageFilename, const int* compressedPayload, int compressedSize);
+void embedPayloadAndExtras(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize);
+int extractAndValidatePayload(const char* inputImageFilename, const char* outputPayloadBaseFilename);
+int embedPayloadInImage(const char* imageFilename, const char* outputImageFilename, const int* compressedPayload, int compressedSize, const char* payloadFilename);
+
 
 #endif //SEMESTRALKAPLSPLSPLS_BMP_H

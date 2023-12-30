@@ -40,7 +40,7 @@ int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
         } else {
             if (lastFoundCode != -1) {
                 output[outputIndex++] = lastFoundCode;
-                printf("Compressing: Code %d at index %d\n", lastFoundCode, outputIndex - 1); /* Debug statement */
+                //printf("Compressing: Code %d at index %d\n", lastFoundCode, outputIndex - 1); /* Debug statement */
             }
             if (currentLength <= MAX_CHAR) {
                 addBytesToDictionary(currentString, currentLength);
@@ -152,7 +152,7 @@ unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) 
 
 void addBytesToDictionary(const unsigned char* bytes, int length) {
 
-    printf("Adding to dictionary, nextAvailableCode: %d\n", nextAvailableCode);
+   // printf("Adding to dictionary, nextAvailableCode: %d\n", nextAvailableCode);
     if (nextAvailableCode >= TABLE_SIZE) {
         fprintf(stderr, "Dictionary is full, resetting.\n");
         resetAndReinitializeDictionary();

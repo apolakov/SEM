@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include "lzw.h"
 #include "bmp.h"
-
+#include "checksuma.h"
 
 
 void readBitmapHeaders(FILE* inputFile, BITMAPFILEHEADER* bfh, BITMAPINFOHEADER* bih) {
@@ -39,15 +39,20 @@ int embedPayloadInImage(const char* imageFilename, const char* outputImageFilena
         return 1;
     }
 
+    printf("I got here\n");
     int numPixels = bih.width * abs(bih.height);
     int payloadBits = compressedSize * 12; // Payload size in bits
-    int availableBits = numPixels - 32; // Available bits for payload, minus 32 for the size
+    int availableBits = numPixels - SIZE_FIELD_BITS - SIGNATURE_SIZE_BITS; // Available bits for payload, minus 32 for the size
 
     if (payloadBits > availableBits) {
         fprintf(stderr, "Not enough space in the image for the payload. Payload is %d and available is %d\n", payloadBits, availableBits);
         free(pixels);
         return 1;
     }
+
+    embedSignature(pixels);
+
+
     embedSize(pixels, payloadBits);
 
     embed12BitPayload(pixels, numPixels, compressedPayload, compressedSize);
@@ -99,6 +104,13 @@ int extractAndDecompressPayload(const char* inputImageFilename, const char* outp
         return 1;
     }
 
+    // Check if the signature matches
+    if (!extractAndCheckSignature(pixels)) {
+        fprintf(stderr, "Signature mismatch or not found.\n");
+        free(pixels);
+        return 1;
+    }
+
     int compressedPayloadSize;
     int* compressedPayload = extract12BitPayload(pixels, (pixelDataSize / sizeof(Pixel)), &compressedPayloadSize);
     free(pixels);
@@ -124,17 +136,18 @@ int extractAndDecompressPayload(const char* inputImageFilename, const char* outp
 
 
 unsigned int extractSizeFromPixelData(const Pixel* pixels, int numPixels) {
-    if (numPixels < 32) {
+    int startIndex = SIGNATURE_SIZE_BITS ; // Start index after the signature
+
+    if (numPixels < startIndex + 32) {
         fprintf(stderr, "Not enough pixels to extract payload size.\n");
         return 0;
     }
 
     unsigned int size = 0;
     for (int i = 0; i < 32; ++i) {
-        unsigned int bit = pixels[i].blue & 1;
+        unsigned int bit = pixels[startIndex + i].blue & 1; // Adjust index by adding startIndex
         size |= (bit << i);
-        // You may want to print the intermediate values for debugging
-        // printf("Extracting bit %d from pixel %d: %d, Cumulative size: %u\n", bit, i, pixels[i].blue, size);
+        // printf("Extracting bit %d from pixel %d: %d, Cumulative size: %u\n", bit, startIndex + i, pixels[startIndex + i].blue, size);
     }
 
     printf("Final extracted size: %u\n", size);
@@ -182,13 +195,16 @@ Pixel* readPixelData(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, int
 
 // Embedding the size
 void embedSize(Pixel* pixels, unsigned int size) {
-    printf("embeded size %u \n",size);
-    for (int i = 0; i < 32; ++i) {
-        unsigned int bit = (size >> i) & 1;
+    printf("Embedding size %u \n", size);
+    int start = SIGNATURE_SIZE_BITS; // Start embedding after the signature
+    int end = start + 32; // The size field is 32 bits
+
+    for (int i = start; i < end; ++i) {
+        unsigned int bit = (size >> (i - start)) & 1; // Adjust bit index by subtracting start
         setLSB(&pixels[i].blue, bit);
     }
-    size = size;
-    printf("SIZE1 %d\n",size);
+
+    printf("SIZE1 %d\n", size);
 }
 
 
@@ -216,7 +232,10 @@ void embed12BitPayload(Pixel* pixels, int numPixels, const int* compressedPayloa
     int totalBits = compressedSize * 12; // 12 bits per code
 
     int bitPosition = 0;
-    for (int i = 32; bitPosition < totalBits; ++i) {
+    int startPixel = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS;
+
+
+    for (int i = startPixel; bitPosition < totalBits; ++i) {
         if (i >= numPixels) {
             fprintf(stderr, "Error: Reached the end of the pixel array. i: %d, numPixels: %d\n", i, numPixels);
             break;
@@ -225,6 +244,7 @@ void embed12BitPayload(Pixel* pixels, int numPixels, const int* compressedPayloa
         int payloadIndex = bitPosition / 12;
         int bitIndexInPayload = bitPosition % 12;
         int bit = (compressedPayload[payloadIndex] >> bitIndexInPayload) & 1;
+        printf("Compressed %d",compressedPayload[payloadIndex] );
 
         setLSB(&pixels[i].blue, bit);
         bitPosition++;
@@ -242,7 +262,12 @@ void embed12BitPayload(Pixel* pixels, int numPixels, const int* compressedPayloa
 }
 
 int* extract12BitPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize) {
+    int startIndex = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS; // This should be 80
+
+
+
     unsigned int payloadBitSize = extractSizeFromPixelData(pixels, numPixels);
+
 
     *compressedPayloadSize = (payloadBitSize + 11) / 12; // Calculate the number of 12-bit codes
 
@@ -255,7 +280,7 @@ int* extract12BitPayload(const Pixel* pixels, int numPixels, int* compressedPayl
     memset(payload, 0, *compressedPayloadSize * sizeof(int));
 
     int bitPosition = 0;
-    for (int i = 32; i < numPixels; ++i) {
+    for (int i = startIndex; i < payloadBitSize; ++i) {
         int payloadIndex = bitPosition / 12;
         int bitIndexInPayload = bitPosition % 12;
 
