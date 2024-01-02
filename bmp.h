@@ -5,16 +5,14 @@
 #ifndef SEMESTRALKAPLSPLSPLS_BMP_H
 #define SEMESTRALKAPLSPLSPLS_BMP_H
 
+#include <stdio.h>
 
-#include <stdio.h>
-#include <stdio.h>
-#include <stdint.h>
+
 #include <string.h>
 
 #define SIGNATURE_SIZE_BITS 48
-#define CRC_SIZE_BITS 32 // 4 bytes (32 bits)
-#define SIZE_FIELD_BITS     32  // Size field is always 32 bits
-
+#define CRC_SIZE_BITS 32
+#define SIZE_FIELD_BITS 32
 
 typedef struct {
     unsigned char blue;
@@ -22,58 +20,35 @@ typedef struct {
     unsigned char red;
 } Pixel;
 
-
-
-
 #pragma pack(push, 1)
 typedef struct {
-    unsigned short type;              // Magic identifier: 0x4d42
-    unsigned int size;                // File size in bytes
-    unsigned short reserved1;         // Not used
-    unsigned short reserved2;         // Not used
-    unsigned int offset;              // Offset to image data in bytes from beginning of file
+    unsigned short type;
+    unsigned long size;
+    unsigned short reserved1;
+    unsigned short reserved2;
+    unsigned long offset;
 } BITMAPFILEHEADER;
 
 typedef struct {
-    unsigned int size;                // Header size in bytes
-    int width,height;                 // Width and height of image
-    unsigned short planes;            // Number of colour planes
-    unsigned short bits;              // Bits per pixel
-    unsigned int compression;         // Compression type
-    unsigned int imagesize;           // Image size in bytes
-    int xresolution,yresolution;      // Pixels per meter
-    unsigned int ncolours;            // Number of colours
-    unsigned int importantcolours;    // Important colours
+    unsigned long size;
+    int width, height;
+    unsigned short planes;
+    unsigned short bits;
+    unsigned long compression;
+    unsigned long imagesize;
+    int xresolution, yresolution;
+    unsigned long ncolours;
+    unsigned long importantcolours;
 } BITMAPINFOHEADER;
 #pragma pack(pop)
 
-
-
-
-//int embedPayloadInImage(const char* imageFilename, const char* outputImageFilename, const int* compressedPayload, int compressedSize, const char* payloadFilename);
-const char* getFileExtension(const char* filename);
 int extractAndDecompressPayload(const char* inputImageFilename, const char* outputPayloadBaseFilename);
-int* extractPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize);
 unsigned int extractSizeFromPixelData(const Pixel* pixels, int numPixels);
 Pixel* readPixelData(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, int* pixelDataSize);
-//void embedPayload(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize);
-int embedPayload(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize);
-int embedFileType(Pixel* pixels, const char* fileType);
 void embedSize(Pixel* pixels, unsigned int size);
-int extractFileType(Pixel* pixels, char* fileType);
 void setLSB(unsigned char* byte, int bitValue);
-int getBit(const int* data, int size, int position);
-//unsigned short* extractPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize);
-//int getBit(const unsigned short* data, int size, int position);
-void embedSignatureAndCRC(Pixel* pixels, int numPixels, const uint8_t* signature, int signatureSize, const int* compressedPayload, int compressedSize);
-
-
 int* extract12BitPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize);
 void embed12BitPayload(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize);
-//int embedPayloadInImage(const char* imageFilename, const char* outputImageFilename, const int* compressedPayload, int compressedSize);
-void embedPayloadAndExtras(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize);
-int extractAndValidatePayload(const char* inputImageFilename, const char* outputPayloadBaseFilename);
 int embedPayloadInImage(const char* imageFilename, const char* outputImageFilename, const int* compressedPayload, int compressedSize, const char* payloadFilename);
 
-
-#endif //SEMESTRALKAPLSPLSPLS_BMP_H
+#endif

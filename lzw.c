@@ -1,11 +1,8 @@
 #include <stdio.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-//#include "function.h"
 #include <stdlib.h>
 #include "lzw.h"
-#include "bmp.h"
 
 #define MAX_CHAR 256
 #define TABLE_SIZE 4096
@@ -40,7 +37,6 @@ int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
         } else {
             if (lastFoundCode != -1) {
                 output[outputIndex++] = lastFoundCode;
-                //printf("Compressing: Code %d at index %d\n", lastFoundCode, outputIndex - 1); /* Debug statement */
             }
             if (currentLength <= MAX_CHAR) {
                 addBytesToDictionary(currentString, currentLength);
@@ -64,7 +60,6 @@ int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
 
     if (lastFoundCode != -1) {
         output[outputIndex++] = lastFoundCode;
-        printf("Compressing: Code %d at index %d\n", lastFoundCode, outputIndex - 1); /* Debug statement */
     }
 
     *outputSize = outputIndex;
@@ -81,7 +76,6 @@ unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) 
     int outputIndex = 0;
     int i, code, newLength, nextCode;
 
-    printf("Decompressing -> start\n");
     initializeDictionary();
 
     decompressed = (unsigned char*)malloc(bufferSize);
@@ -99,7 +93,6 @@ unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) 
 
     for (i = 0; i < size; i++) {
         code = codes[i];
-        printf("Decompressing: Code %d at index %d\n", code, i);
 
         if (code < 0 || code >= nextAvailableCode) {
             fprintf(stderr, "Found invalid code during decompression: %d\n", code);
@@ -152,7 +145,6 @@ unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) 
 
 void addBytesToDictionary(const unsigned char* bytes, int length) {
 
-   // printf("Adding to dictionary, nextAvailableCode: %d\n", nextAvailableCode);
     if (nextAvailableCode >= TABLE_SIZE) {
         fprintf(stderr, "Dictionary is full, resetting.\n");
         resetAndReinitializeDictionary();

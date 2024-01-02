@@ -12,7 +12,7 @@ if(MSVC)
 endif()
 
 # Add your executable
-add_executable(SEM main.c function.c lzw.c files.c bmp.c png.c pngs.h
+add_executable(SEM main.c lzw.c files.c bmp.c png.c pngs.h
         checksuma.c
         checksuma.h)
 

@@ -7,42 +7,43 @@
 #include <string.h>
 #include "checksuma.h"
 
+
 int embedPayloadInPNG(const char* imageFilename, const char* outputImageFilename, const unsigned char* originalPayload, int originalPayloadSize) {
+    int compressedPayloadSize, compressedPayloadBitSize;
+    int* compressedPayload;
+    unsigned long crc;
+    Pixel* imagePixels;
+    int imageWidth, imageHeight;
+    size_t payloadByteSize, payloadBitSize;
+    unsigned int testSize;
+
     if (!imageFilename || !outputImageFilename || !originalPayload) {
         fprintf(stderr, "Null pointer passed to parameters.\n");
         return 1;
     }
 
-    // Compress the payload using LZW
-    int compressedPayloadSize;
-    int* compressedPayload = lzwCompress(originalPayload, originalPayloadSize, &compressedPayloadSize);
+    compressedPayload = lzwCompress(originalPayload, originalPayloadSize, &compressedPayloadSize);
     if (!compressedPayload) {
         fprintf(stderr, "LZW compression failed.\n");
         return 1;
     }
 
-    Pixel* imagePixels;
-    int imageWidth, imageHeight;
+    compressedPayloadBitSize = compressedPayloadSize;
+    crc = calculateCRC32FromBits(compressedPayload, compressedPayloadBitSize);
 
-    printf("Reading the source PNG image...\n");
     if (readPNG(imageFilename, &imagePixels, &imageWidth, &imageHeight) != 0) {
         fprintf(stderr, "Failed to read the PNG file: %s\n", imageFilename);
-        free(compressedPayload); // Clean up compressed payload
+        free(compressedPayload);
         return 1;
     }
 
-    printf("Embedding the signature into the image...\n");
     embedSignature(imagePixels);
 
-
-    printf("Calculating the compressed payload byte size...\n");
-    size_t payloadByteSize = (compressedPayloadSize * 12 + 7) / 8; // Convert 12-bit codes to bytes, rounding up
-    size_t payloadBitSize = payloadByteSize * 8; // Compressed payload size in bits
-    printf("Compressed payload byte size: %zu, Payload bit size: %zu\n", payloadByteSize, payloadBitSize);
-
-    printf("Embedding the payload size into the image...\n");
+    payloadByteSize = (compressedPayloadSize * 12 + 7) / 8;
+    payloadBitSize = compressedPayloadSize * 12;
     embedSizePNG(imagePixels, payloadBitSize);
-    unsigned int testSize = extractSizeFromPixelDataPNG(imagePixels);
+
+    testSize = extractSizeFromPixelDataPNG(imagePixels);
     if (testSize != payloadBitSize) {
         fprintf(stderr, "Size embedding test failed! Embedded: %zu, Extracted: %u\n", payloadBitSize, testSize);
         free(imagePixels);
@@ -50,7 +51,6 @@ int embedPayloadInPNG(const char* imageFilename, const char* outputImageFilename
         return 1;
     }
 
-    printf("Embedding compressed payload into image...\n");
     if (embedPayloadInPixels(imagePixels, imageWidth, imageHeight, (unsigned char*)compressedPayload, payloadByteSize) != 0) {
         fprintf(stderr, "Failed to embed payload into image.\n");
         free(imagePixels);
@@ -58,7 +58,8 @@ int embedPayloadInPNG(const char* imageFilename, const char* outputImageFilename
         return 1;
     }
 
-    printf("Writing the modified image to a new PNG file...\n");
+    embedCRCInPixels(imagePixels, imageWidth, imageHeight, crc, payloadBitSize);
+
     if (writePNG(outputImageFilename, imagePixels, imageWidth, imageHeight) != 0) {
         fprintf(stderr, "Failed to write the output PNG file: %s\n", outputImageFilename);
         free(imagePixels);
@@ -66,58 +67,62 @@ int embedPayloadInPNG(const char* imageFilename, const char* outputImageFilename
         return 1;
     }
 
-    printf("Image written successfully to %s\n", outputImageFilename);
-
     free(imagePixels);
     free(compressedPayload);
     printf("Memory cleaned up and function completed successfully.\n");
-    return 0; // Success
+    return 0;
 }
 
 
 int extractAndDecompressPayloadFromPNG(const char* inputImageFilename, const char* outputPayloadFilename) {
+    Pixel* pixels;
+    int width, height, compressedSizeBits, decompressedPayloadSize, compressedSizeBytes;
+    int* compressedPayload;
+    unsigned long extractedCRC, calculatedCRC;
+    unsigned char* decompressedPayload;
+    FILE *outputFile;
+
     if (!inputImageFilename || !outputPayloadFilename) {
         fprintf(stderr, "Null pointer passed to parameters.\n");
         return 1;
     }
 
-    Pixel* pixels;
-    int width, height;
-
-    printf("Reading the PNG image: %s\n", inputImageFilename);
     if (readPNG(inputImageFilename, &pixels, &width, &height) != 0) {
         fprintf(stderr, "Failed to read PNG file: %s\n", inputImageFilename);
         return 1;
     }
 
-    // Check if the signature matches
     if (!extractAndCheckSignature(pixels)) {
         fprintf(stderr, "Signature mismatch or not found in PNG.\n");
         free(pixels);
         return 1;
     }
 
-    int* compressedPayload;
-    int compressedSizeBits;
-    printf("Extracting the compressed payload from the image...\n");
     if (extractPayloadFromPixels(pixels, width, height, &compressedPayload, &compressedSizeBits) != 0) {
         fprintf(stderr, "Failed to extract payload from image.\n");
         free(pixels);
         return 1;
     }
 
-    int compressedSizeBytes = compressedSizeBits / 8;
-    printf("Decompressing the payload. Size (bytes): %d\n", compressedSizeBytes);
-    int decompressedPayloadSize;
-    unsigned char* decompressedPayload = lzwDecompress(compressedPayload, compressedSizeBits, &decompressedPayloadSize);    if (!decompressedPayload) {
+    extractedCRC = extractCRCFromPixels(pixels, width, height, compressedSizeBits * 12);
+    calculatedCRC = calculateCRC32FromBits(compressedPayload, compressedSizeBits);
+
+    if (extractedCRC != calculatedCRC) {
+        fprintf(stderr, "CRC mismatch. Payload may be corrupted.\n");
+        free(compressedPayload);
+        free(pixels);
+        return 1;
+    }
+
+    compressedSizeBytes = compressedSizeBits / 8;
+    decompressedPayload = lzwDecompress(compressedPayload, compressedSizeBits, &decompressedPayloadSize);
+    if (!decompressedPayload) {
         fprintf(stderr, "Decompression failed.\n");
         free(pixels);
         return 1;
     }
 
-    printf("Saving the decompressed payload to file: %s\n", outputPayloadFilename);
-    FILE *outputFile;
-    fopen_s(&outputFile, outputPayloadFilename, "wb");
+    outputFile = fopen(outputPayloadFilename, "wb");
     if (!outputFile) {
         fprintf(stderr, "Failed to open output file: %s\n", outputPayloadFilename);
         free(decompressedPayload);
@@ -129,12 +134,8 @@ int extractAndDecompressPayloadFromPNG(const char* inputImageFilename, const cha
 
     free(decompressedPayload);
     free(pixels);
-    printf("Decompressed payload saved successfully.\n");
-
-    return 0; // Success
+    return 0;
 }
-
-
 
 
 
@@ -145,14 +146,12 @@ int readPNG(const char* filename, Pixel** outPixels, int* outWidth, int* outHeig
         return 1;
     }
 
-    FILE *fp;
-    fopen_s(&fp, filename, "rb");
+    FILE *fp = fopen(filename, "rb");
     if (!fp) {
         fprintf(stderr, "Could not open file %s for reading.\n", filename);
         return 1;
     }
 
-    printf("Initializing PNG read structure for file: %s\n", filename);
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     if (!png_ptr) {
         fclose(fp);
@@ -249,7 +248,6 @@ int readPNG(const char* filename, Pixel** outPixels, int* outWidth, int* outHeig
     *outWidth = width;
     *outHeight = height;
 
-    printf("PNG read successfully.\n");
     return 0;
 }
 
@@ -260,14 +258,12 @@ int writePNG(const char* filename, Pixel* pixels, int width, int height) {
         return 1;
     }
 
-    FILE *fp;
-    fopen_s(&fp, filename, "wb");
+    FILE *fp = fopen(filename, "wb");
     if (!fp) {
         fprintf(stderr, "Could not open file %s for writing.\n", filename);
         return 1;
     }
 
-    printf("Initializing PNG write structure for file: %s\n", filename);
     png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     if (!png_ptr) {
         fclose(fp);
@@ -291,31 +287,28 @@ int writePNG(const char* filename, Pixel* pixels, int width, int height) {
     }
 
     png_init_io(png_ptr, fp);
-    png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_RGB,
-                 PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+    png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
     png_bytep *row_pointers = (png_bytep*) malloc(sizeof(png_bytep) * height);
     if (!row_pointers) {
-        fprintf(stderr, "Memory allocation failed for row pointers.\n");
         png_destroy_write_struct(&png_ptr, &info_ptr);
         fclose(fp);
+        fprintf(stderr, "Memory allocation failed for row pointers.\n");
         return 1;
     }
 
     for (int y = 0; y < height; y++) {
         row_pointers[y] = (png_byte*) malloc(png_get_rowbytes(png_ptr, info_ptr));
         if (!row_pointers[y]) {
-            fprintf(stderr, "Memory allocation failed for row %d.\n", y);
-            // Free previously allocated rows
             for (int j = 0; j < y; j++) {
                 free(row_pointers[j]);
             }
             free(row_pointers);
             png_destroy_write_struct(&png_ptr, &info_ptr);
             fclose(fp);
+            fprintf(stderr, "Memory allocation failed for row %d.\n", y);
             return 1;
         }
-
         for (int x = 0; x < width; x++) {
             Pixel* pixel = &pixels[y * width + x];
             png_byte* row = &(row_pointers[y][x * 3]);
@@ -332,6 +325,7 @@ int writePNG(const char* filename, Pixel* pixels, int width, int height) {
         free(row_pointers[y]);
     }
     free(row_pointers);
+
     png_destroy_write_struct(&png_ptr, &info_ptr);
     fclose(fp);
 
@@ -348,34 +342,35 @@ int embedPayloadInPixels(Pixel* pixels, int width, int height, const int* compre
         return 1;
     }
 
-    printf("compressedpayloadsizze %d\n", compressedPayloadSize);
-    size_t payloadBits = compressedPayloadSize * 12; // 12 bits per code
-    size_t imageCapacity = (size_t)width * height;
+    size_t payloadBits, imageCapacity, startPixel, bitPosition, pixelIndex;
+    unsigned char bit;
+    int i, j;
 
-    size_t startPixel = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS; // Adjust for signature and size field
+    printf("compressedpayloadsizze %d\n", compressedPayloadSize);
+    payloadBits = compressedPayloadSize * 12; // 12 bits per code
+    imageCapacity = (size_t)width * height;
+    startPixel = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS; // Adjust for signature and size field
 
     if (payloadBits + startPixel > imageCapacity) {
         fprintf(stderr, "Image does not have enough capacity for the payload. Available: %zu, Required: %zu\n", imageCapacity, payloadBits + 32);
         return 1;
     }
 
-    size_t bitPosition = 0;
-    for (size_t i = 0; i < compressedPayloadSize; ++i) {
-        for (size_t j = 0; j < 12; ++j) {
-            size_t pixelIndex = bitPosition + startPixel;
+    bitPosition = 0;
+    for (i = 0; i < compressedPayloadSize; ++i) {
+        for (j = 0; j < 12; ++j) {
+            pixelIndex = bitPosition + startPixel;
             if (pixelIndex >= imageCapacity) {
                 fprintf(stderr, "Pixel index out of bounds. Index: %zu, Capacity: %zu\n", pixelIndex, imageCapacity);
                 return 1;
             }
-            unsigned char bit = (compressedPayload[i] >> j) & 1;
+            bit = (compressedPayload[i] >> j) & 1;
             embedBit(&pixels[pixelIndex], bit);
             bitPosition++;
         }
     }
     return 0;
 }
-
-
 
 
 // Embedding a bit in the blue channel
@@ -391,14 +386,16 @@ int extractPayloadFromPixels(const Pixel* pixels, int width, int height, int** o
         return 1;
     }
 
-    size_t startPixel = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS; // Adjust for signature and size field
+    size_t startPixel, totalPixels, bitPosition, i, codeIndex, bitIndexInCode, pixelIndex;
+    unsigned int payloadSizeBits;
+    unsigned char bit;
 
+    startPixel = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS; // Adjust for signature and size field
+    payloadSizeBits = extractSizeFromPixelDataPNG(pixels);
+    *outCompressedPayloadSize = (payloadSizeBits + 11) / 12;
+    totalPixels = (size_t)width * height;
 
-    unsigned int payloadSizeBits = extractSizeFromPixelDataPNG(pixels);
-    *outCompressedPayloadSize = (payloadSizeBits + 11) / 12; // Convert bits to number of 12-bit codes
-    size_t totalPixels = (size_t)width * height;
-
-    if (payloadSizeBits  + startPixel > totalPixels * 8) {
+    if (payloadSizeBits + startPixel > totalPixels * 8) {
         fprintf(stderr, "Payload size exceeds image capacity.\n");
         return 1;
     }
@@ -410,11 +407,11 @@ int extractPayloadFromPixels(const Pixel* pixels, int width, int height, int** o
     }
 
     memset(*outCompressedPayload, 0, *outCompressedPayloadSize * sizeof(int));
-    size_t bitPosition = 0;
-    for (size_t i = 0; i < payloadSizeBits; ++i) {
-        size_t codeIndex = i / 12;
-        size_t bitIndexInCode = i % 12;
-        size_t pixelIndex = i + startPixel; // Start after the size pixels
+    bitPosition = 0;
+    for (i = 0; i < payloadSizeBits; ++i) {
+        codeIndex = i / 12;
+        bitIndexInCode = i % 12;
+        pixelIndex = i + startPixel;
 
         if (pixelIndex >= totalPixels) {
             fprintf(stderr, "Pixel index out of bounds. Index: %zu, Total Pixels: %zu\n", pixelIndex, totalPixels);
@@ -423,7 +420,7 @@ int extractPayloadFromPixels(const Pixel* pixels, int width, int height, int** o
             return 1;
         }
 
-        unsigned char bit = extractBit(&pixels[pixelIndex]);
+        bit = extractBit(&pixels[pixelIndex]);
         (*outCompressedPayload)[codeIndex] |= (bit << bitIndexInCode);
     }
 
@@ -432,50 +429,43 @@ int extractPayloadFromPixels(const Pixel* pixels, int width, int height, int** o
 
 
 
-
 void embedSizePNG(Pixel* pixels, unsigned int sizeInBits) {
-    printf("\n\nI AM HERE\n\n");
     if (!pixels) {
         fprintf(stderr, "Null pointer passed to embedSizePNG.\n");
         return;
     }
 
-    int startIndex = SIGNATURE_SIZE_BITS; // Start index after the signature
-
-
+    int startIndex = SIGNATURE_SIZE_BITS;
     printf("Embedding payload size in bits: %u\n", sizeInBits);
     for (int i = 0; i < 32; ++i) {
-        unsigned int bit = (sizeInBits >> (31 - i)) & 1; // Extract bits from MSB to LSB
-        pixels[startIndex + i].blue = (pixels[startIndex + i].blue & 0xFE) | bit; // Embed the bit in the LSB
-        printf("SIZE->Embedding bit %u at pixel index %d, resulting blue value: %d\n", bit, i, pixels[i].blue);
+        unsigned int bit = (sizeInBits >> (31 - i)) & 1;
+        pixels[startIndex + i].blue = (pixels[startIndex + i].blue & 0xFE) | bit;
     }
-    printf("I am trying to embed size %d Bits",sizeInBits);
 }
 
+
+unsigned int extractBit(const Pixel* pixel) {
+    if (!pixel) {
+        fprintf(stderr, "Null pointer passed to extractBit.\n");
+        return 0;
+    }
+
+    unsigned int bit = pixel->blue & 1;
+    return bit;
+}
 
 unsigned int extractSizeFromPixelDataPNG(const Pixel* pixels) {
     if (!pixels) {
         fprintf(stderr, "Null pointer passed to extractSizeFromPixelDataPNG.\n");
         return 0;
     }
+
     int startIndex = SIGNATURE_SIZE_BITS; // Start index after the signature
-
-
     unsigned int size = 0;
-    printf("Extracting payload size from image...\n");
+
     for (int i = 0; i < 32; ++i) {
         unsigned int bit = extractBit(&pixels[startIndex + i]);
-        size |= (bit << (31 - i)); // Correct bit position
-        //printf("Extracted bit %u from pixel index %d, resulting size so far: %u\n", bit, i, size);
+        size |= (bit << (31 - i));
     }
-    printf("Extracted payload size in bits: %u\n", size);
     return size;
-}
-
-
-
-unsigned int extractBit(const Pixel* pixel) {
-    unsigned int bit = pixel->blue & 1;
-    //printf("Extracted bit %u from blue value %d\n", bit, pixel->blue);
-    return bit;
 }

@@ -1,67 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include "function.h"
 #include "lzw.h"
 #include "files.h"
 #include "bmp.h"
 #include "pngs.h"
-#include <png.h>
 #include "checksuma.h"
 
 #define TABLE_SIZE 16384
 #define MAX_CHAR 256
 
-//int writeBinaryPayloadData(const char* filename, const unsigned char* data, int size);
-int compareImages(const char* originalFilename, const char* savedFilename);
-
-int writeCompressedPayloadToFile(const char* filename, const int* compressedPayload, int compressedSize) {
-    FILE* file = fopen(filename, "wb");
-    if (!file) {
-        fprintf(stderr, "Failed to open file for writing compressed payload.\n");
-        return 1;
-    }
-
-    // Calculate the total number of bytes needed for the 12-bit packed data
-    int totalBytes = (compressedSize * 12 + 7) / 8;  // Round up to the nearest byte
-    unsigned char* packedData = malloc(totalBytes);
-    if (!packedData) {
-        fprintf(stderr, "Memory allocation failed for packed data.\n");
-        fclose(file);
-        return 1;
-    }
-
-    // Pack the 12-bit codes into the buffer
-    int bitPosition = 0;
-    for (int i = 0; i < compressedSize; i++) {
-        int code = compressedPayload[i];
-        for (int j = 0; j < 12; j++) {
-            int byteIndex = (bitPosition / 8);
-            int bitIndex = bitPosition % 8;
-            packedData[byteIndex] |= ((code >> j) & 1) << bitIndex;
-            bitPosition++;
-        }
-    }
-
-    // Write the size (in terms of number of 12-bit codes) and packed data
-    fwrite(&compressedSize, sizeof(compressedSize), 1, file);
-    fwrite(packedData, 1, totalBytes, file);
-
-    // Clean up
-    free(packedData);
-    fclose(file);
-    return 0;
-}
-
-#define TEST_PAYLOAD_SIZE 300 // Example size of your test payload
 
 
 int main() {
     const char* imageFilename = "../png24.png";
-    const char* payloadFilename = "../aaa.jpg";
+    const char* payloadFilename = "../redkvicka.jpg";
     const char* outputImageFilename = "../output.png";
     const char* decompressedPayloadFilename = "../decompressed_payload.jpg";
-
+    generate_crc32_table();
 
 
     int type = 1; /* bmp=2, png=3 */

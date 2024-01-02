@@ -14,7 +14,7 @@ int is_24bit_bmp(FILE *file);
 int is_24bit_png(FILE *file);
 int determineFileTypeAndCheck24Bit(const char *filename);
 int saveImage(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, unsigned char* pixelData, int pixelDataSize);
-
+int writeCompressedPayloadToFile(const char* filename, const unsigned long* compressedPayload, int compressedSize);
 
 
 

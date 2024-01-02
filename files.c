@@ -186,3 +186,48 @@ int saveImage(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, 
     fclose(file);
     return 1;
 }
+
+int writeCompressedPayloadToFile(const char* filename, const unsigned long* compressedPayload, int compressedSize) {
+    FILE* file;
+    unsigned long totalBytes;
+    unsigned char* packedData;
+    int bitPosition, i, j, code;
+    size_t bytesWritten;
+    unsigned long byteIndex, bitIndex;
+
+    file = fopen(filename, "wb");
+    if (!file) {
+        fprintf(stderr, "Failed to open file for writing compressed payload.\n");
+        return 1;
+    }
+
+    totalBytes = (compressedSize * 12 + 7) / 8;
+    packedData = (unsigned char*)malloc(totalBytes);
+    if (!packedData) {
+        fprintf(stderr, "Memory allocation failed for packed data.\n");
+        fclose(file);
+        return 1;
+    }
+
+    memset(packedData, 0, totalBytes);
+    bitPosition = 0;
+    for (i = 0; i < compressedSize; i++) {
+        code = compressedPayload[i];
+        for (j = 0; j < 12; j++) {
+            byteIndex = (bitPosition / 8);
+            bitIndex = bitPosition % 8;
+            packedData[byteIndex] |= ((code >> j) & 1) << bitIndex;
+            bitPosition++;
+        }
+    }
+
+    bytesWritten = fwrite(&compressedSize, sizeof(compressedSize), 1, file);
+    bytesWritten += fwrite(packedData, 1, totalBytes, file);
+
+    free(packedData);
+    fclose(file);
+
+    return (bytesWritten == totalBytes + 1) ? 0 : 1;
+}
+
+
