@@ -8,18 +8,18 @@
 #define TABLE_SIZE 4096
 
 
-DictionaryEntry* table[TABLE_SIZE];
-int nextAvailableCode = 0;
+dictionary_entry* table[TABLE_SIZE];
+int next_available_code = 0;
 
-int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
-    unsigned char currentString[MAX_CHAR + 1] = {0};
-    int currentLength = 0;
+int* lzw_compress(const unsigned char* input, int size, int* output_size) {
+    unsigned char current_string[MAX_CHAR + 1] = {0};
+    int current_length = 0;
     int* output;
     int outputIndex = 0;
-    int lastFoundCode = -1;
+    int last_found = -1;
     int i, code;
 
-    initializeDictionary();
+    initialize_dictionary();
 
     output = (int*)malloc(TABLE_SIZE * sizeof(int));
     if (!output) {
@@ -28,22 +28,22 @@ int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
     }
 
     for (i = 0; i < size; i++) {
-        currentString[currentLength] = input[i];
-        currentLength++;
+        current_string[current_length] = input[i];
+        current_length++;
 
-        code = findBytesCode(currentString, currentLength);
+        code = find_bytes_code(current_string, current_length);
         if (code != -1) {
-            lastFoundCode = code;
+            last_found = code;
         } else {
-            if (lastFoundCode != -1) {
-                output[outputIndex++] = lastFoundCode;
+            if (last_found != -1) {
+                output[outputIndex++] = last_found;
             }
-            if (currentLength <= MAX_CHAR) {
-                addBytesToDictionary(currentString, currentLength);
+            if (current_length <= MAX_CHAR) {
+                bytes_to_dictionary(current_string, current_length);
             }
-            currentString[0] = input[i];
-            currentLength = 1;
-            lastFoundCode = findBytesCode(currentString, currentLength);
+            current_string[0] = input[i];
+            current_length = 1;
+            last_found = find_bytes_code(current_string, current_length);
         }
         if (outputIndex >= TABLE_SIZE) {
             int newSize = outputIndex * 2;
@@ -51,24 +51,24 @@ int* lzwCompress(const unsigned char* input, int size, int* outputSize) {
             if (!temp) {
                 fprintf(stderr, "Memory reallocation failed during compression.\n");
                 free(output);
-                freeDictionary();
+                free_dictionary();
                 return NULL;
             }
             output = temp;
         }
     }
 
-    if (lastFoundCode != -1) {
-        output[outputIndex++] = lastFoundCode;
+    if (last_found != -1) {
+        output[outputIndex++] = last_found;
     }
 
-    *outputSize = outputIndex;
-    freeDictionary();
+    *output_size = outputIndex;
+    free_dictionary();
     return output;
 }
 
 
-unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) {
+unsigned char* lzw_decompress(const int* codes, int size, int* decompressedSize) {
     int bufferSize = 1024; /* Initial buffer size */
     unsigned char* decompressed;
     unsigned char* temp;
@@ -76,7 +76,7 @@ unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) 
     int outputIndex = 0;
     int i, code, newLength, nextCode;
 
-    initializeDictionary();
+    initialize_dictionary();
 
     decompressed = (unsigned char*)malloc(bufferSize);
     if (!decompressed) {
@@ -94,7 +94,7 @@ unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) 
     for (i = 0; i < size; i++) {
         code = codes[i];
 
-        if (code < 0 || code >= nextAvailableCode) {
+        if (code < 0 || code >= next_available_code) {
             fprintf(stderr, "Found invalid code during decompression: %d\n", code);
             goto error;
         }
@@ -117,64 +117,64 @@ unsigned char* lzwDecompress(const int* codes, int size, int* decompressedSize) 
             memcpy(newString, table[code]->bytes, table[code]->length);
 
             nextCode = codes[i + 1];
-            if (nextCode < nextAvailableCode) {
+            if (nextCode < next_available_code) {
                 newString[newLength - 1] = table[nextCode]->bytes[0];
-            } else if (nextCode == nextAvailableCode) {
+            } else if (nextCode == next_available_code) {
                 newString[newLength - 1] = newString[0];
             } else {
                 fprintf(stderr, "Next code %d is out of bounds at index %d\n", nextCode, i);
                 goto error;
             }
 
-            addBytesToDictionary(newString, newLength);
+            bytes_to_dictionary(newString, newLength);
         }
     }
 
     *decompressedSize = outputIndex;
     free(newString);
-    freeDictionary();
+    free_dictionary();
     printf("Decompressing -> end\n");
     return decompressed;
 
     error:
     free(decompressed);
     free(newString);
-    freeDictionary();
+    free_dictionary();
     return NULL;
 }
 
-void addBytesToDictionary(const unsigned char* bytes, int length) {
+void bytes_to_dictionary(const unsigned char* bytes, int length) {
 
-    if (nextAvailableCode >= TABLE_SIZE) {
+    if (next_available_code >= TABLE_SIZE) {
         fprintf(stderr, "Dictionary is full, resetting.\n");
-        resetAndReinitializeDictionary();
+        renew_dictionary();
         printf("Dictionary reset and reinitialized.\n");
 
     }
 
-    table[nextAvailableCode] = (DictionaryEntry*)malloc(sizeof(DictionaryEntry));
-    if (table[nextAvailableCode] == NULL) {
+    table[next_available_code] = (dictionary_entry*)malloc(sizeof(dictionary_entry));
+    if (table[next_available_code] == NULL) {
         fprintf(stderr, "Memory allocation failed.\n");
         return;
     }
 
-    table[nextAvailableCode]->bytes = (unsigned char*)malloc(length);
-    if (table[nextAvailableCode]->bytes == NULL) {
+    table[next_available_code]->bytes = (unsigned char*)malloc(length);
+    if (table[next_available_code]->bytes == NULL) {
         fprintf(stderr, "Memory allocation failed.\n");
-        free(table[nextAvailableCode]);
+        free(table[next_available_code]);
         return;
     }
 
-    memcpy(table[nextAvailableCode]->bytes, bytes, length);
-    table[nextAvailableCode]->length = length;
-    table[nextAvailableCode]->code = nextAvailableCode;
-    nextAvailableCode++;
+    memcpy(table[next_available_code]->bytes, bytes, length);
+    table[next_available_code]->length = length;
+    table[next_available_code]->code = next_available_code;
+    next_available_code++;
 }
 
-void initializeDictionary() {
+void initialize_dictionary() {
     int i;
     for (i = 0; i < MAX_CHAR; i++) {
-        table[i] = (DictionaryEntry*)malloc(sizeof(DictionaryEntry));
+        table[i] = (dictionary_entry*)malloc(sizeof(dictionary_entry));
         if (table[i] == NULL) {
             fprintf(stderr, "Memory allocation failed.\n");
             return;
@@ -191,13 +191,13 @@ void initializeDictionary() {
         table[i]->length = 1;
         table[i]->code = i;
     }
-    nextAvailableCode = MAX_CHAR;
+    next_available_code = MAX_CHAR;
 }
 
 
-int findBytesCode(const unsigned char* bytes, int length) {
+int find_bytes_code(const unsigned char* bytes, int length) {
     int i;
-    for (i = 0; i < nextAvailableCode; i++) {
+    for (i = 0; i < next_available_code; i++) {
         if (table[i] && table[i]->length == length && memcmp(table[i]->bytes, bytes, length) == 0) {
             return table[i]->code;
         }
@@ -205,7 +205,7 @@ int findBytesCode(const unsigned char* bytes, int length) {
     return -1;
 }
 
-void freeDictionary() {
+void free_dictionary() {
     int i;
     for (i = 0; i < TABLE_SIZE; i++) {
         if (table[i]) {
@@ -214,13 +214,13 @@ void freeDictionary() {
             table[i] = NULL;
         }
     }
-    nextAvailableCode = 0;
+    next_available_code = 0;
 }
 
-unsigned char* readBinaryPayloadData(const char* filename, int* size) {
+unsigned char* read_payload(const char* filename, int* size) {
     FILE* file;
     unsigned char* data;
-    size_t itemsRead;
+    size_t current;
 
     file = fopen(filename, "rb");
     if (!file) {
@@ -239,8 +239,8 @@ unsigned char* readBinaryPayloadData(const char* filename, int* size) {
         return NULL;
     }
 
-    itemsRead = fread(data, 1, *size, file);
-    if (itemsRead != (size_t)*size) {
+    current = fread(data, 1, *size, file);
+    if (current != (size_t)*size) {
         fprintf(stderr, "Error reading from file.\n");
         free(data);
         fclose(file);
@@ -251,7 +251,7 @@ unsigned char* readBinaryPayloadData(const char* filename, int* size) {
     return data;
 }
 
-void resetDictionary() {
+void reset_dictionary() {
     int i;
     for (i = 0; i < TABLE_SIZE; i++) {
         if (table[i]) {
@@ -260,10 +260,10 @@ void resetDictionary() {
             table[i] = NULL;
         }
     }
-    nextAvailableCode = MAX_CHAR;
+    next_available_code = MAX_CHAR;
 }
 
-void resetAndReinitializeDictionary() {
-    resetDictionary();
-    initializeDictionary();
+void renew_dictionary() {
+    reset_dictionary();
+    initialize_dictionary();
 }

@@ -5,7 +5,8 @@
 #include "bmp.h"
 
 
-int determineFileTypeAndCheck24Bit(const char *filename) {
+int determine_type(const char *filename) {
+    printf("determining");
     FILE *file = fopen(filename, "rb");
     int fileTypeCheck;
     if (!file) {
@@ -132,7 +133,7 @@ int is_24bit_bmp(FILE *file) {
     return bits_per_pixel == 24;
 }
 
-int saveImage(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, unsigned char* pixelData, int pixelDataSize) {
+int save_image(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, unsigned char* pixelData, int pixelDataSize) {
     FILE* file;
     size_t bytesWritten;
     int padding, i;
@@ -187,7 +188,7 @@ int saveImage(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, 
     return 1;
 }
 
-int writeCompressedPayloadToFile(const char* filename, const unsigned long* compressedPayload, int compressedSize) {
+int write_compressed(const char* filename, const unsigned long* compressedPayload, int compressedSize) {
     FILE* file;
     unsigned long totalBytes;
     unsigned char* packedData;

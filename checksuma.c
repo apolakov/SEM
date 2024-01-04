@@ -14,7 +14,7 @@ void setLSBSignature(unsigned char* byte, unsigned char bitValue) {
 
 
 
-void embedSignature(Pixel* pixels) {
+void embed_signature(Pixel* pixels) {
     unsigned char signature[SIGNATURE_SIZE_BYTES] = {0x32, 0x30, 0x30, 0x32, 0x31, 0x32};
     int i, byteIndex, bitIndex;
     unsigned char bit;
@@ -27,7 +27,7 @@ void embedSignature(Pixel* pixels) {
     }
 }
 
-int extractAndCheckSignature(const Pixel* pixels) {
+int check_signature(const Pixel* pixels) {
     unsigned char expectedSignature[SIGNATURE_SIZE_BYTES] = {0x32, 0x30, 0x30, 0x32, 0x31, 0x32};
     unsigned char extractedSignature[SIGNATURE_SIZE_BYTES] = {0};
     int i, byteIndex, bitIndex;
@@ -80,7 +80,7 @@ void generate_crc32_table() {
 }
 
 
-void embedCRCInPixels(Pixel* pixels, int width, int height, unsigned long crc, unsigned long payloadBitSize) {
+void embed_crc(Pixel* pixels, int width, int height, unsigned long crc, unsigned long payloadBitSize) {
     unsigned long imageCapacity = (unsigned long)width * height;
     unsigned long crcPosition, i, pixelIndex;
     unsigned char bit;
@@ -95,12 +95,12 @@ void embedCRCInPixels(Pixel* pixels, int width, int height, unsigned long crc, u
     for (i = 0; i < 32; ++i) {
         pixelIndex = crcPosition + i;
         bit = (crc >> (31 - i)) & 1;
-        embedBit(&pixels[pixelIndex], bit);
+        embed_bit(&pixels[pixelIndex], bit);
     }
 }
 
 
-unsigned long extractCRCFromPixels(const Pixel* pixels, int width, int height, int compressedSizeBits) {
+unsigned long extract_crc(const Pixel* pixels, int width, int height, int compressedSizeBits) {
     unsigned long imageCapacity, crcPosition, crc, i, pixelIndex, totalPixels;
     unsigned char bit;
 
@@ -123,14 +123,14 @@ unsigned long extractCRCFromPixels(const Pixel* pixels, int width, int height, i
 
         totalPixels = (unsigned long)width * height;
 
-        bit = extractBit(&pixels[pixelIndex]);
+        bit = extract_bit(&pixels[pixelIndex]);
         crc |= (bit << (31 - i));
     }
 
     return crc;
 }
 
-unsigned long calculateCRC32FromBits(const int* bitArray, int bitArraySize) {
+unsigned long calculate_crc(const int* bitArray, int bitArraySize) {
     unsigned long crc = 0xFFFFFFFF;
     int i, bit;
 

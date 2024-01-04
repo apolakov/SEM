@@ -15,11 +15,11 @@
 #define CRC32_SIZE 4     // bytes
 
 void setLSBSignature(unsigned char* byte, unsigned char bitValue);
-void embedSignature(Pixel* pixels);
+void embed_signature(Pixel* pixels);
 void generate_crc32_table();
-int extractAndCheckSignature(const Pixel* pixels);
-void embedCRCInPixels(Pixel* pixels, int width, int height, unsigned long crc, unsigned long payloadBitSize);
-unsigned long extractCRCFromPixels(const Pixel* pixels, int width, int height, int compressedSizeBits);
-unsigned long calculateCRC32FromBits(const int* bitArray, int bitArraySize);
+int check_signature(const Pixel* pixels);
+void embed_crc(Pixel* pixels, int width, int height, unsigned long crc, unsigned long payloadBitSize);
+unsigned long extract_crc(const Pixel* pixels, int width, int height, int compressedSizeBits);
+unsigned long calculate_crc(const int* bitArray, int bitArraySize);
 
 #endif //SEM_CHECKSUMA_H

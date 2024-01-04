@@ -10,94 +10,70 @@
 #define MAX_CHAR 256
 
 
-
 int main() {
-    const char* imageFilename = "../png24.png";
-    const char* payloadFilename = "../redkvicka.jpg";
-    const char* outputImageFilename = "../output.png";
-    const char* decompressedPayloadFilename = "../decompressed_payload.jpg";
+    const char* image_name = "../png24.png";
+    const char* payload_name = "../redkvicka.jpg";
+    const char* output_name = "../output.png";
+    const char* decompressed_name = "../decompressed_payload.jpg";
     generate_crc32_table();
 
 
     int type = 1; /* bmp=2, png=3 */
 
 
-    int payloadSize;
-    unsigned char* payloadData;
-    int* compressedPayload;
-    int compressedSize;
-    int extractionSuccess;
+    int payload_size;
+    unsigned char* payload_data;
+    int* compressed_payload;
+    int compressed_size;
+    int extraction_success;
 
     /* Step 1: Determine file type and check if it's 24-bit */
-    printf("start step1\n");
-    type = determineFileTypeAndCheck24Bit(imageFilename);
+    type = determine_type(image_name);
     if (type == 1) {
         fprintf(stderr, "File is not a 24-bit BMP or PNG.\n");
+        return 2;
+    }
+
+    payload_data = read_payload(payload_name, &payload_size);
+    if (!payload_data) {
+        fprintf(stderr, "Failed to load payload data.\n");
         return 1;
     }
 
-    /* Step 2: Load payload */
-    printf("start step2\n");
-    payloadData = readBinaryPayloadData(payloadFilename, &payloadSize);
-    if (!payloadData) {
-        fprintf(stderr, "Failed to load payload data.\n");
+    compressed_payload = lzw_compress(payload_data, payload_size, &compressed_size);
+    free(payload_data); // Assume payload_data is no longer needed after this point
+    if (!compressed_payload) {
+        fprintf(stderr, "Compression failed.\n");
         return 1;
     }
 
 
     if(type==2){
 
-        printf("start step3\n");
-        compressedPayload = lzwCompress(payloadData, payloadSize, &compressedSize);
-        printf("MAIN compressed - %d",compressedSize);
-        free(payloadData); // Assume payloadData is no longer needed after this point
-
-        if (!compressedPayload) {
-            fprintf(stderr, "Compression failed.\n");
-            return 1;
-        }
-
-        // Write compressed payload to a file
-        printf("I am printing compressed file\n");
-        if (writeCompressedPayloadToFile("../compressed_payload.bin", compressedPayload, compressedSize) != 0) {
-            fprintf(stderr, "Failed to write compressed payload to file.\n");
-            free(compressedPayload);
-            return 1;
-        }
-
-
-        // Step 4: Embed payload into image and save the output image
-        printf("start step4\n");
-        if (embedPayloadInImage(imageFilename, outputImageFilename, compressedPayload, compressedSize, payloadFilename) != 0) {
+        if (embed_to_bmp(image_name, output_name, compressed_payload, compressed_size, payload_name) != 0) {
             fprintf(stderr, "Failed to embed payload into image or create output image.\n");
-            free(compressedPayload);
-            return 1;
+            free(compressed_payload);
+            return 3;
         }
-        free(compressedPayload);
+        free(compressed_payload);
 
-        // Step 5: Extract and decompress payload from image
-        printf("start step5\n");
-        extractionSuccess = extractAndDecompressPayload(outputImageFilename, decompressedPayloadFilename);
-        if (extractionSuccess != 0) {
+        extraction_success = extract_payload(output_name, decompressed_name);
+        if (extraction_success != 0) {
             fprintf(stderr, "Failed to extract and decompress payload from image.\n");
-            return 1;
+            return extraction_success;
         }
     }
     if(type==3){
-        printf("start step4\n");
-        printf("Original Playload size in byets: %d\n", payloadSize);
-        if (embedPayloadInPNG(imageFilename, outputImageFilename, payloadData, payloadSize) != 0) {
+        printf("Original Playload size in byets: %d\n", payload_size);
+        if (embed_to_png(image_name, output_name, compressed_payload, compressed_size) != 0) {
             fprintf(stderr, "Failed to embed payload into image or create output image.\n");
-            // Free your payload data if necessary
-            return 1;
+            return 3;
         }
 
-        // Step 5: Extract and decompress payload from image
-        printf("start step5\n");
-        extractionSuccess = extractAndDecompressPayloadFromPNG(outputImageFilename, decompressedPayloadFilename);
-        if (extractionSuccess != 0) {
+        extraction_success = extract_for_png(output_name, decompressed_name);
+        if (extraction_success != 0) {
             fprintf(stderr, "Failed to extract and decompress payload from image.\n");
-            return 1;
+            return extraction_success;
         }
     }
 

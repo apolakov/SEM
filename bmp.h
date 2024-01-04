@@ -42,13 +42,13 @@ typedef struct {
 } BITMAPINFOHEADER;
 #pragma pack(pop)
 
-int extractAndDecompressPayload(const char* inputImageFilename, const char* outputPayloadBaseFilename);
-unsigned int extractSizeFromPixelData(const Pixel* pixels, int numPixels);
-Pixel* readPixelData(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, int* pixelDataSize);
-void embedSize(Pixel* pixels, unsigned int size);
-void setLSB(unsigned char* byte, int bitValue);
-int* extract12BitPayload(const Pixel* pixels, int numPixels, int* compressedPayloadSize);
-void embed12BitPayload(Pixel* pixels, int numPixels, const int* compressedPayload, int compressedSize);
-int embedPayloadInImage(const char* imageFilename, const char* outputImageFilename, const int* compressedPayload, int compressedSize, const char* payloadFilename);
+int extract_payload(const char* input_name, const char* output_name);
+unsigned int extract_size_from_pixels(const Pixel* pixels, int num_pixels);
+Pixel* read_pixel_data(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, int* pixel_data_size);
+void embed_size(Pixel* pixels, unsigned int size);
+void set_lsb(unsigned char* byte, int bitValue);
+int* extract_12bit_payload(const Pixel* pixels, int num_pixels, int* compressed_payload_size);
+void embed_12bit_payload(Pixel* pixels, int num_pixels, const int* compressed_payload, int compressed_size);
+int embed_to_bmp(const char* image_filename, const char* output_image_filename, const int* compressed_payload, int compressed_size, const char* payloadFilename);
 
 #endif
