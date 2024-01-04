@@ -8,7 +8,7 @@
 unsigned long crc32_table[256];
 
 
-void setLSBSignature(unsigned char* byte, unsigned char bitValue) {
+void set_lsb_sign(unsigned char* byte, unsigned char bitValue) {
     *byte = (*byte & 0xFE) | (bitValue & 1);
 }
 
@@ -23,7 +23,7 @@ void embed_signature(Pixel* pixels) {
         byteIndex = i / 8;
         bitIndex = i % 8;
         bit = (signature[byteIndex] >> bitIndex) & 1;
-        setLSBSignature(&pixels[i].blue, bit);
+        set_lsb_sign(&pixels[i].blue, bit);
     }
 }
 

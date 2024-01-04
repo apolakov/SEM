@@ -133,7 +133,7 @@ int is_24bit_bmp(FILE *file) {
     return bits_per_pixel == 24;
 }
 
-int save_image(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, unsigned char* pixelData, int pixelDataSize) {
+int save_image(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, unsigned char* pixelData) {
     FILE* file;
     size_t bytesWritten;
     int padding, i;
@@ -187,10 +187,10 @@ int save_image(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih,
     fclose(file);
     return 1;
 }
-
-int write_compressed(const char* filename, const unsigned long* compressedPayload, int compressedSize) {
+/*
+int write_compressed(const char* filename, const unsigned long* compressed_payload, int compressed_size) {
     FILE* file;
-    unsigned long totalBytes;
+    unsigned long total_bytes;
     unsigned char* packedData;
     int bitPosition, i, j, code;
     size_t bytesWritten;
@@ -202,18 +202,18 @@ int write_compressed(const char* filename, const unsigned long* compressedPayloa
         return 1;
     }
 
-    totalBytes = (compressedSize * 12 + 7) / 8;
-    packedData = (unsigned char*)malloc(totalBytes);
+    total_bytes = (compressed_size * 12 + 7) / 8;
+    packedData = (unsigned char*)malloc(total_bytes);
     if (!packedData) {
         fprintf(stderr, "Memory allocation failed for packed data.\n");
         fclose(file);
         return 1;
     }
 
-    memset(packedData, 0, totalBytes);
+    memset(packedData, 0, total_bytes);
     bitPosition = 0;
-    for (i = 0; i < compressedSize; i++) {
-        code = compressedPayload[i];
+    for (i = 0; i < compressed_size; i++) {
+        code = compressed_payload[i];
         for (j = 0; j < 12; j++) {
             byteIndex = (bitPosition / 8);
             bitIndex = bitPosition % 8;
@@ -222,13 +222,14 @@ int write_compressed(const char* filename, const unsigned long* compressedPayloa
         }
     }
 
-    bytesWritten = fwrite(&compressedSize, sizeof(compressedSize), 1, file);
-    bytesWritten += fwrite(packedData, 1, totalBytes, file);
+    bytesWritten = fwrite(&compressed_size, sizeof(compressed_size), 1, file);
+    bytesWritten += fwrite(packedData, 1, total_bytes, file);
 
     free(packedData);
     fclose(file);
 
-    return (bytesWritten == totalBytes + 1) ? 0 : 1;
+    return (bytesWritten == total_bytes + 1) ? 0 : 1;
 }
 
 
+*/

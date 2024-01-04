@@ -53,7 +53,7 @@ int embed_to_png(const char* image_filename, const char* output_name, int* compr
         return 1;
     }
 
-    if (embed_12bit_png(image_pixels, image_width, image_height, compressed_payload, payload_in_bytes) != 0) {
+    if (embed_12bit_png(image_pixels, image_width, image_height, compressed_payload, (int)payload_in_bytes) != 0) {
         fprintf(stderr, "Failed to embed payload into image.\n");
         free(image_pixels);
         free(compressed_payload);
@@ -78,7 +78,7 @@ int embed_to_png(const char* image_filename, const char* output_name, int* compr
 
 int extract_for_png(const char* input_name, const char* output_name) {
     Pixel* pixels;
-    int width, height, compressed_size_bits, decompressed_payload_size, compressed_in_bytes;
+    int width, height, compressed_size_bits, decompressed_payload_size;
     int* compressed_payload;
     unsigned long found_crc, calculated_crc;
     unsigned char* decompressed_payload;
@@ -116,7 +116,7 @@ int extract_for_png(const char* input_name, const char* output_name) {
         return 5;
     }
 
-    compressed_in_bytes = compressed_size_bits / 8;
+
     decompressed_payload = lzw_decompress(compressed_payload, compressed_size_bits, &decompressed_payload_size);
     if (!decompressed_payload) {
         fprintf(stderr, "Decompression failed.\n");
@@ -247,8 +247,8 @@ int read_png(const char* filename, Pixel** out_pixels, int* out_width, int* out_
     fclose(fp);
 
     *out_pixels = pixels;
-    *out_width = width;
-    *out_height = height;
+    *out_width = (int)width;
+    *out_height = (int)height;
 
     return 0;
 }
@@ -375,7 +375,6 @@ int embed_12bit_png(Pixel* pixels, int width, int height, const int* compressed_
 }
 
 
-// Embedding a bit in the blue channel
 void embed_bit(Pixel* pixel, size_t bit) {
     pixel->blue = (pixel->blue & 0xFE) | (bit & 1);
 }
@@ -388,13 +387,13 @@ int extract_pixels_payload(const Pixel* pixels, int width, int height, int** out
         return 1;
     }
 
-    size_t start_pixel, total_pixels, bit_position, i, code_index, bit_index, pixel_index;
+    size_t start_pixel, total_pixels,  i, code_index, bit_index, pixel_index;
     unsigned int payload_size;
     unsigned char bit;
 
     start_pixel = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS; // Adjust for signature and size field
     payload_size = extract_size_png(pixels);
-    *out_compressed_size = (payload_size + 11) / 12;
+    *out_compressed_size = (int)(payload_size + 11) / 12;
     total_pixels = (size_t)width * height;
 
 
@@ -410,7 +409,6 @@ int extract_pixels_payload(const Pixel* pixels, int width, int height, int** out
     }
 
     memset(*out_compressed_payload, 0, *out_compressed_size * sizeof(int));
-    bit_position = 0;
     for (i = 0; i < payload_size; ++i) {
         code_index = i / 12;
         bit_index = i % 12;

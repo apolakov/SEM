@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.23)
 project(SEM C)
-set(CMAKE_C_STANDARD 99)
+
+#set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 90)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c90")
 
 # Find the required packages
 find_package(ZLIB REQUIRED)

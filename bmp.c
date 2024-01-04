@@ -14,14 +14,17 @@ void read_bitmap_headers(FILE* input_file, BITMAPFILEHEADER* bfh, BITMAPINFOHEAD
 }
 
 int calculate_padding(BITMAPINFOHEADER bih) {
-    return (4 - (bih.width * sizeof(Pixel)) % 4) % 4;
+    int width = (int)bih.width;
+
+    return (4 - (width * (int)sizeof(Pixel)) % 4) % 4;
 }
 
-int embed_to_bmp(const char* image_filename, const char* output_image_filename, const int* compressed_payload, int compressed_size, const char* payloadFilename) {
+int embed_to_bmp(const char* image_filename, const char* output_image_filename, const int* compressed_payload, int compressed_size) {
     BITMAPFILEHEADER bfh;
     BITMAPINFOHEADER bih;
     FILE* input_file;
-    int padding, pixel_data_size, num_pixels, payload_bits, available_bits, crc_bits;
+    int padding,  num_pixels, payload_bits, available_bits;
+    size_t pixel_data_size;
     uint32_t crc;
     Pixel* pixels;
 
@@ -34,7 +37,7 @@ int embed_to_bmp(const char* image_filename, const char* output_image_filename, 
     read_bitmap_headers(input_file, &bfh, &bih);
 
     padding = calculate_padding(bih);
-    pixel_data_size = bih.width * abs(bih.height) * sizeof(Pixel) + padding * abs(bih.height);
+    pixel_data_size = (size_t)bih.width * (size_t)abs(bih.height) * sizeof(Pixel) + (size_t)padding * abs(bih.height);
 
     pixels = read_pixel_data(input_file, bfh, bih, &pixel_data_size);
     if (!pixels) {
@@ -43,7 +46,8 @@ int embed_to_bmp(const char* image_filename, const char* output_image_filename, 
         return 1;
     }
 
-    num_pixels = bih.width * abs(bih.height);
+    num_pixels = (int)((size_t)bih.width * (size_t)abs(bih.height));
+
     payload_bits = compressed_size * 12; /* Payload size in bits */
     available_bits = num_pixels - SIZE_FIELD_BITS - SIGNATURE_SIZE_BITS - CRC_SIZE_BITS; /* Available bits for payload, minus 32 for the size */
 
@@ -61,7 +65,7 @@ int embed_to_bmp(const char* image_filename, const char* output_image_filename, 
 
     embed_crc(pixels, bih.width, abs(bih.height), crc, payload_bits);
 
-    if (!save_image(output_image_filename, bfh, bih, (unsigned char *) pixels, pixel_data_size)) {
+    if (!save_image(output_image_filename, bfh, bih, (unsigned char *) pixels)) {
         fprintf(stderr, "Failed to create output image with embedded payload.\n");
         free(pixels);
         return 1;
@@ -82,7 +86,7 @@ void read_bitmap(const char* filename, BITMAPFILEHEADER* bfh, BITMAPINFOHEADER* 
     }
 
     read_bitmap_headers(input_file, bfh, bih);
-    *pixels = read_pixel_data(input_file, *bfh, *bih, pixel_data_size);
+    *pixels = read_pixel_data(input_file, *bfh, *bih,  pixel_data_size);
     fclose(input_file);
 }
 
@@ -127,7 +131,7 @@ int extract_payload(const char* input_name, const char* output_name) {
     }
 
     /* Extract compressed payload from image */
-    compressed_payload = extract_12bit_payload(pixels, (pixel_data_size / sizeof(Pixel)), &compressed_payload_size);
+    compressed_payload = extract_12bit_payload(pixels, (int)(pixel_data_size / sizeof(Pixel)), &compressed_payload_size);
     if (!compressed_payload) {
         fprintf(stderr, "Failed to extract payload.\n");
         free(pixels);
@@ -135,8 +139,9 @@ int extract_payload(const char* input_name, const char* output_name) {
     }
 
     /* Extract and calculate CRC */
-    extracted_crc = extract_crc(pixels, bih.width, abs(bih.height), compressed_payload_size * 12);
-    calculated_crc = calculate_crc(compressed_payload, compressed_payload_size * 12);
+    unsigned long tmp_crc_size = (unsigned long)compressed_payload_size * 12;
+    extracted_crc = (tmp_crc_size <= UINT_MAX) ? extract_crc(pixels, bih.width, abs(bih.height), (int)tmp_crc_size) : 0;  // Or handle the case where the value exceeds UINT_MAX.
+    calculated_crc = (tmp_crc_size <= UINT_MAX) ? calculate_crc(compressed_payload, (int)tmp_crc_size) : 0;  // Or handle the case where the value exceeds UINT_MAX.
 
     /* Compare the extracted CRC with the calculated CRC */
     if (extracted_crc != calculated_crc) {
@@ -187,13 +192,13 @@ unsigned int extract_size_from_pixels(const Pixel* pixels, int num_pixels) {
 
 
 
-Pixel* read_pixel_data(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, int* pixel_data_size) {
+Pixel* read_pixel_data(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, size_t* pixel_data_size){
     int row_size, padding, i;
     long total_size;
     Pixel* pixel_data;
 
     /* Calculate padding safely */
-    row_size = bih.width * sizeof(Pixel);
+    row_size = (int)(bih.width * sizeof(Pixel));
     padding = (4 - (row_size % 4)) % 4;
     total_size = (long)row_size + padding;
     total_size *= abs(bih.height);
@@ -214,7 +219,7 @@ Pixel* read_pixel_data(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, i
     }
 
     /* Set the file position to the beginning of pixel data */
-    fseek(file, bfh.offset, SEEK_SET);
+    fseek(file, (long)bfh.offset, SEEK_SET);
 
     for (i = 0; i < abs(bih.height); ++i) {
         if (fread(pixel_data + (bih.width * i), sizeof(Pixel), bih.width, file) != bih.width) {
@@ -226,7 +231,7 @@ Pixel* read_pixel_data(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, i
         fseek(file, padding, SEEK_CUR);
     }
 
-    *pixel_data_size = bih.width * abs(bih.height) * sizeof(Pixel);
+    *pixel_data_size = (size_t)bih.width * (size_t)abs(bih.height) * sizeof(Pixel);
     return pixel_data;
 }
 
@@ -247,7 +252,7 @@ void embed_size(Pixel* pixels, unsigned int size) {
 
     for (i = start; i < end; ++i) {
         bit = (size >> (i - start)) & 1; /* Adjust bit index by subtracting start */
-        set_lsb(&pixels[i].blue, bit);
+        set_lsb(&pixels[i].blue, (int)bit);
     }
 
 
@@ -309,7 +314,7 @@ int* extract_12bit_payload(const Pixel* pixels, int num_pixels, int* compressed_
 
     payload_bit_size = extract_size_from_pixels(pixels, num_pixels);
 
-    *compressed_payload_size = (payload_bit_size + 11) / 12; /* Calculate the number of 12-bit codes */
+    *compressed_payload_size = (int)(payload_bit_size + 11) / 12; /* Calculate the number of 12-bit codes */
 
     payload = (int*)malloc(*compressed_payload_size * sizeof(int));
     if (!payload) {

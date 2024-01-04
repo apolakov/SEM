@@ -11,10 +11,8 @@
 #include <string.h>
 
 
-#define SIGNATURE_SIZE 3 // bytes
-#define CRC32_SIZE 4     // bytes
 
-void setLSBSignature(unsigned char* byte, unsigned char bitValue);
+void set_lsb_sign(unsigned char* byte, unsigned char bitValue);
 void embed_signature(Pixel* pixels);
 void generate_crc32_table();
 int check_signature(const Pixel* pixels);

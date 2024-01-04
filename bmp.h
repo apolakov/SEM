@@ -44,11 +44,11 @@ typedef struct {
 
 int extract_payload(const char* input_name, const char* output_name);
 unsigned int extract_size_from_pixels(const Pixel* pixels, int num_pixels);
-Pixel* read_pixel_data(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, int* pixel_data_size);
+Pixel* read_pixel_data(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, size_t* pixel_data_size);
 void embed_size(Pixel* pixels, unsigned int size);
 void set_lsb(unsigned char* byte, int bitValue);
 int* extract_12bit_payload(const Pixel* pixels, int num_pixels, int* compressed_payload_size);
 void embed_12bit_payload(Pixel* pixels, int num_pixels, const int* compressed_payload, int compressed_size);
-int embed_to_bmp(const char* image_filename, const char* output_image_filename, const int* compressed_payload, int compressed_size, const char* payloadFilename);
+int embed_to_bmp(const char* image_filename, const char* output_image_filename, const int* compressed_payload, int compressed_size);
 
 #endif
