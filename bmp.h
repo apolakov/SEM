@@ -28,12 +28,14 @@ typedef struct {
 
 typedef struct {
     unsigned long size;
-    int width, height;
+    long width;
+    long height;
     unsigned short planes;
     unsigned short bits;
     unsigned long compression;
     unsigned long imagesize;
-    int xresolution, yresolution;
+    long xresolution;
+    long yresolution;
     unsigned long ncolours;
     unsigned long importantcolours;
 } BITMAPINFOHEADER;

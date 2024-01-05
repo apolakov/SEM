@@ -81,11 +81,14 @@ void generate_crc32_table() {
 
 
 void embed_crc(Pixel* pixels, int width, int height, unsigned long crc, unsigned long payloadBitSize) {
+
+
     unsigned long imageCapacity = (unsigned long)width * height;
     unsigned long crcPosition, i, pixelIndex;
     unsigned char bit;
 
     crcPosition = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS + payloadBitSize; /* Adjusted CRC position */
+    printf("Embedding CRC: %lu at position: %lu\n", crc, crcPosition);
 
     if (crcPosition + 32 > imageCapacity * 8) {
         fprintf(stderr, "Not enough space to embed CRC in image.\n");
@@ -101,34 +104,29 @@ void embed_crc(Pixel* pixels, int width, int height, unsigned long crc, unsigned
 
 
 unsigned long extract_crc(const Pixel* pixels, int width, int height, int compressedSizeBits) {
-    unsigned long imageCapacity, crcPosition, crc, i, pixelIndex;
+    unsigned long imageCapacity, crcPosition, i, pixelIndex;
     unsigned char bit;
+    unsigned long crc = 0;
+    unsigned long mask = 0xFFFFFFFF; // Mask to keep only the lower 32 bits
 
     imageCapacity = (unsigned long)width * height;
     crcPosition = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS + compressedSizeBits;
 
     if (crcPosition + 32 > imageCapacity * 8) {
         fprintf(stderr, "Not enough space in image to contain a CRC.\n");
-        return 0;  /* Error handling */
+        return 0;
     }
-
-    crc = 0;
 
     for (i = 0; i < 32; ++i) {
         pixelIndex = crcPosition + i;
-        if (pixelIndex >= imageCapacity) {
-            fprintf(stderr, "Pixel index out of bounds. Index: %lu, Capacity: %lu\n", pixelIndex, imageCapacity);
-            return 0;  /* Error handling */
-        }
-
-
-
         bit = extract_bit(&pixels[pixelIndex]);
-        crc |= (bit << (31 - i));
+        crc |= (bit << (31 - i)) & mask;
     }
 
     return crc;
 }
+
+
 
 unsigned long calculate_crc(const int* bitArray, int bitArraySize) {
     unsigned long crc = 0xFFFFFFFF;

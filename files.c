@@ -94,7 +94,7 @@ int save_image(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih,
     /* Compute padding for each row */
     padding = (4 - (bih.width * 3) % 4) % 4;
 
-    for (i = 0; i < abs(bih.height); i++) {
+    for (i = 0; i < labs(bih.height); i++) {
         unsigned char* rowData = pixelData + (bih.width * 3) * i;
 
         /* Write one row of pixels */

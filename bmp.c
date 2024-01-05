@@ -10,8 +10,48 @@
 
 
 void read_bitmap_headers(FILE* input_file, BITMAPFILEHEADER* bfh, BITMAPINFOHEADER* bih) {
-    fread(bfh, sizeof(BITMAPFILEHEADER), 1, input_file);
-    fread(bih, sizeof(BITMAPINFOHEADER), 1, input_file);
+    long filePos = ftell(input_file);
+    printf("Initial File Position: %ld\n", filePos);
+
+    if (fread(&bfh->type, 2, 1, input_file) != 1) return; // 2 bytes
+    if (fread(&bfh->size, 4, 1, input_file) != 1) return; // 4 bytes
+    fread(&bfh->reserved1, sizeof(bfh->reserved1), 1, input_file); // Read as 2 bytes
+    fread(&bfh->reserved2, sizeof(bfh->reserved2), 1, input_file); // Read as 2 bytes
+    fread(&bfh->offset, sizeof(bfh->offset), 1, input_file); // Read as 4 bytes
+
+    if (fread(&bih->size, 4, 1, input_file) != 1) return; // 4 bytes
+
+    unsigned char widthBytes[4];
+    unsigned char heightBytes[4];
+    if (fread(widthBytes, 4, 1, input_file) != 1) return; // 4 bytes
+    if (fread(heightBytes, 4, 1, input_file) != 1) return; // 4 bytes
+
+    filePos = ftell(input_file);
+    printf("File Position after reading Width and Height: %ld\n", filePos);
+
+    printf("\n");
+    printf("Raw Width Bytes: ");
+    for (int i = 0; i < 4; i++) printf("%02X ", widthBytes[i]);
+    printf("\n");
+
+    printf("Raw Height Bytes: ");
+    for (int i = 0; i < 4; i++) printf("%02X ", heightBytes[i]);
+    printf("\n");
+
+    bih->width = (long)(widthBytes[0] | widthBytes[1] << 8 | widthBytes[2] << 16 | widthBytes[3] << 24);
+    bih->height = (long)(heightBytes[0] | heightBytes[1] << 8 | heightBytes[2] << 16 | heightBytes[3] << 24);
+
+    // Continue reading the rest of bih
+    fread(&bih->planes, sizeof(bih->planes), 1, input_file); // Read as 2 bytes
+    fread(&bih->bits, sizeof(bih->bits), 1, input_file); // Read as 2 bytes
+    fread(&bih->compression, sizeof(bih->compression), 1, input_file); // Read as 4 bytes
+    fread(&bih->imagesize, sizeof(bih->imagesize), 1, input_file); // Read as 4 bytes
+    fread(&bih->xresolution, sizeof(bih->xresolution), 1, input_file); // Read as 4 bytes
+    fread(&bih->yresolution, sizeof(bih->yresolution), 1, input_file); // Read as 4 bytes
+    fread(&bih->ncolours, sizeof(bih->ncolours), 1, input_file); // Read as 4 bytes
+    fread(&bih->importantcolours, sizeof(bih->importantcolours), 1, input_file); // Read as 4 bytes
+
+    printf("Read Width: %ld, Height: %ld\n", bih->width, bih->height);
 }
 
 int calculate_padding(BITMAPINFOHEADER bih) {
@@ -24,7 +64,8 @@ int embed_to_bmp(const char* image_filename, const char* output_image_filename, 
     BITMAPFILEHEADER bfh;
     BITMAPINFOHEADER bih;
     FILE* input_file;
-    int padding,  num_pixels, payload_bits, available_bits;
+    int padding, num_pixels, payload_bits, available_bits;
+    long num_pixels_long;
     size_t pixel_data_size;
     uint32_t crc;
     Pixel* pixels;
@@ -38,7 +79,7 @@ int embed_to_bmp(const char* image_filename, const char* output_image_filename, 
     read_bitmap_headers(input_file, &bfh, &bih);
 
     padding = calculate_padding(bih);
-    pixel_data_size = (size_t)bih.width * (size_t)abs(bih.height) * sizeof(Pixel) + (size_t)padding * abs(bih.height);
+    pixel_data_size = (size_t)bih.width * (size_t)labs(bih.height) * sizeof(Pixel) + (size_t)padding * labs(bih.height);
 
     pixels = read_pixel_data(input_file, bfh, bih, &pixel_data_size);
     if (!pixels) {
@@ -47,10 +88,19 @@ int embed_to_bmp(const char* image_filename, const char* output_image_filename, 
         return 1;
     }
 
-    num_pixels = (int)((size_t)bih.width * (size_t)abs(bih.height));
+    num_pixels_long = (long)bih.width * (long)labs(bih.height);
+
+    // Ensure that num_pixels_long does not exceed the limit of int
+    if (num_pixels_long > INT_MAX || num_pixels_long < 0) {
+        fprintf(stderr, "Error: Number of pixels exceeds the limit or is negative.\n");
+        fclose(input_file);  // Close the file before returning
+        free(pixels);
+        return 3;
+    }
+    num_pixels = (int)num_pixels_long;
 
     payload_bits = compressed_size * 12; /* Payload size in bits */
-    available_bits = num_pixels - SIZE_FIELD_BITS - SIGNATURE_SIZE_BITS - CRC_SIZE_BITS; /* Available bits for payload, minus 32 for the size */
+    available_bits = num_pixels * 8 - (SIZE_FIELD_BITS + SIGNATURE_SIZE_BITS + CRC_SIZE_BITS);
 
     if (payload_bits > available_bits) {
         fprintf(stderr, "Not enough space in the image for the payload. Payload is %d bits and available is %d bits\n", payload_bits, available_bits);
@@ -64,7 +114,7 @@ int embed_to_bmp(const char* image_filename, const char* output_image_filename, 
 
     crc = calculate_crc(compressed_payload, payload_bits);
 
-    embed_crc(pixels, bih.width, abs(bih.height), crc, payload_bits);
+    embed_crc(pixels, bih.width, labs(bih.height), crc, payload_bits);
 
     printf("i am trying to save picture\n");
     if (!save_image(output_image_filename, bfh, bih, (unsigned char *) pixels)) {
@@ -148,7 +198,7 @@ int extract_payload(const char* input_name, const char* output_name) {
 
     /* Extract and calculate CRC */
     tmp_crc_size = (unsigned long)compressed_payload_size * 12;
-    extracted_crc = (tmp_crc_size <= UINT_MAX) ? extract_crc(pixels, bih.width, abs(bih.height), (int)tmp_crc_size) : 0;
+    extracted_crc = (tmp_crc_size <= UINT_MAX) ? extract_crc(pixels, bih.width, labs(bih.height), (int)tmp_crc_size) : 0;
     calculated_crc = (tmp_crc_size <= UINT_MAX) ? calculate_crc(compressed_payload, (int)tmp_crc_size) : 0;
 
     /* Compare the extracted CRC with the calculated CRC */
@@ -210,7 +260,7 @@ Pixel* read_pixel_data(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, s
     row_size = (int)(bih.width * sizeof(Pixel));
     padding = (4 - (row_size % 4)) % 4;
     total_size = (long)row_size + padding;
-    total_size *= abs(bih.height);
+    total_size *= labs(bih.height);
 
     /* Check for overflow or too large size */
     if (total_size > INT_MAX) {
@@ -230,7 +280,7 @@ Pixel* read_pixel_data(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, s
     /* Set the file position to the beginning of pixel data */
     fseek(file, (long)bfh.offset, SEEK_SET);
 
-    for (i = 0; i < abs(bih.height); ++i) {
+    for (i = 0; i < labs(bih.height); ++i) {
         if ((int)fread(pixel_data + (bih.width * i), sizeof(Pixel), bih.width, file) != (int)bih.width) {
             fprintf(stderr, "Failed to read pixel data.\n");
             free(pixel_data);  /* Free allocated memory in case of read error */
@@ -240,7 +290,7 @@ Pixel* read_pixel_data(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, s
         fseek(file, padding, SEEK_CUR);
     }
 
-    *pixel_data_size = (size_t)bih.width * (size_t)abs(bih.height) * sizeof(Pixel);
+    *pixel_data_size = (size_t)bih.width * (size_t)labs(bih.height) * sizeof(Pixel);
     return pixel_data;
 }
 
@@ -251,30 +301,25 @@ void set_lsb(unsigned char* byte, int bitValue) {
 }
 
 void embed_size(Pixel* pixels, unsigned int size) {
-    int start, end, i;
+    int start = SIGNATURE_SIZE_BITS;
+    int end = start + 32; // The size field is 32 bits
+    int i;
     unsigned int bit;
 
     printf("Embedding size %u\n", size);
 
-    start = SIGNATURE_SIZE_BITS; /* Start embedding after the signature */
-    end = start + 32; /* The size field is 32 bits */
-
     for (i = start; i < end; ++i) {
-        bit = (size >> (i - start)) & 1; /* Adjust bit index by subtracting start */
+        bit = (size >> (i - start)) & 1;
         set_lsb(&pixels[i].blue, (int)bit);
     }
-
-
 }
 
 
 void embed_12bit_payload(Pixel* pixels, int num_pixels, const int* compressed_payload, int compressed_size) {
-    int total_bits, bit_position, start_pixel, i, payload_index, bit_index_in_payload, bit;
-
-    total_bits = compressed_size * 12; /* 12 bits per code */
-
-    bit_position = 0;
-    start_pixel = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS;
+    long total_bits = (long)compressed_size * 12; // Use long to avoid overflow
+    long bit_position = 0;
+    int start_pixel = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS;
+    int i, payload_index, bit_index_in_payload, bit;
 
     for (i = start_pixel; bit_position < total_bits; ++i) {
         if (i >= num_pixels) {
@@ -290,16 +335,16 @@ void embed_12bit_payload(Pixel* pixels, int num_pixels, const int* compressed_pa
         bit_position++;
 
         if (bit_position >= total_bits) {
-            printf("Successfully embedded all bits. Last bit position: %d\n", bit_position);
+            printf("Successfully embedded all bits. Last bit position: %ld\n", bit_position);
             break;
         }
     }
 
-    /* Check if all bits were embedded */
     if (bit_position != total_bits) {
-        fprintf(stderr, "Error: Not all payload bits were embedded. Embedded: %d, Expected: %d\n", bit_position, total_bits);
+        fprintf(stderr, "Error: Not all payload bits were embedded. Embedded: %ld, Expected: %ld\n", bit_position, total_bits);
     }
 }
+
 
 int* extract_12bit_payload(const Pixel* pixels, int num_pixels, int* compressed_payload_size) {
     int start_index, payload_index, bit_index_in_payload, bit, bit_position, i;

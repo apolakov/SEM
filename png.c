@@ -6,7 +6,7 @@
 #include "lzw.h"
 #include <string.h>
 #include "checksuma.h"
-
+#include <errno.h>
 
 int embed_to_png(const char* image_filename, const char* output_name, int* compressed_payload, int compressed_payload_size) {
     unsigned long crc;
@@ -15,6 +15,7 @@ int embed_to_png(const char* image_filename, const char* output_name, int* compr
     size_t payload_in_bytes, payload_in_bites;
     unsigned int test_size;
 
+    printf("EMBED TO PNG\n");
     if (!image_filename || !output_name || !compressed_payload) {
         fprintf(stderr, "Null pointer passed to parameters.\n");
         return 1;
@@ -40,6 +41,7 @@ int embed_to_png(const char* image_filename, const char* output_name, int* compr
 
 
     embed_signature(image_pixels);
+
 
     payload_in_bytes = (compressed_payload_size * 12 + 7) / 8;
     payload_in_bites = compressed_payload_size * 12;
@@ -105,6 +107,7 @@ int extract_for_png(const char* input_name, const char* output_name) {
         free(pixels);
         return 1;
     }
+
 
     found_crc = extract_crc(pixels, width, height, compressed_size_bits * 12);
     calculated_crc = calculate_crc(compressed_payload, compressed_size_bits);
@@ -443,14 +446,8 @@ void embed_size_png(Pixel* pixels, unsigned int size_in_bits) {
 }
 
 
-unsigned int extract_bit(const Pixel* pixel) {
-    if (!pixel) {
-        fprintf(stderr, "Null pointer passed to extract_bit.\n");
-        return 0;
-    }
-
-    unsigned int bit = pixel->blue & 1;
-    return bit;
+unsigned char extract_bit(const Pixel* pixel) {
+    return pixel->blue & 1u;
 }
 
 unsigned int extract_size_png(const Pixel* pixels) {

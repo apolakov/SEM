@@ -46,10 +46,12 @@ int main(int argc, char *argv[]) {
 
         type = determine_type(image_name);
         printf("Type determined: %d\n", type);
+        printf("++++++++++++++++++++");
         if (type == 1) {
             fprintf(stderr, "File is not a 24-bit BMP or PNG.\n");
             return 2;
         }
+
 
         payload_data = read_payload(payload_name, &payload_size);
         if (!payload_data) {
@@ -66,6 +68,7 @@ int main(int argc, char *argv[]) {
 
         if(type==2){
 
+            printf("i am in type = 2");
             if (embed_to_bmp(image_name, image_name, compressed_payload, compressed_size) != 0) {
                 fprintf(stderr, "Failed to embed payload into image or create output image.\n");
                 free(compressed_payload);
@@ -75,6 +78,7 @@ int main(int argc, char *argv[]) {
 
         }
         if(type==3){
+            printf("going to embed to png\n");
             if (embed_to_png(image_name, image_name, compressed_payload, compressed_size) != 0) {
                 fprintf(stderr, "Failed to embed payload into image or create output image.\n");
                 return 3;
