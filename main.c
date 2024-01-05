@@ -40,13 +40,9 @@ int main(int argc, char *argv[]) {
 
     generate_crc32_table();
 
-    printf("Image name: %s\n", image_name);
-    printf("Direction: %s\n", direction);
-    printf("Payload name: %s\n", payload_name);
-
-
-
     if (strcmp(direction, "-h") == 0){
+
+        printf("We will embed.\n");
 
         type = determine_type(image_name);
         printf("Type determined: %d\n", type);
@@ -84,11 +80,15 @@ int main(int argc, char *argv[]) {
                 return 3;
             }
         }
+        printf("Embedding is done.\n");
     }
 
     if(strcmp(direction, "-x") == 0){
+        printf("We will extract.\n");
         type = determine_type(image_name);
+        printf("\n\ndecompressing\n\n");
 
+        printf("filetype is %d", type);
         if(type==2){
 
             extraction_success = extract_payload(image_name, payload_name);
@@ -105,7 +105,9 @@ int main(int argc, char *argv[]) {
                 return extraction_success;
             }
         }
+        printf("Extraction is done.\n");
     }
 
+    printf("I am done and everything is ok.\n");
     return 0;
 }

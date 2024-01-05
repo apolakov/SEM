@@ -66,6 +66,7 @@ int embed_to_bmp(const char* image_filename, const char* output_image_filename, 
 
     embed_crc(pixels, bih.width, abs(bih.height), crc, payload_bits);
 
+    printf("i am trying to save picture\n");
     if (!save_image(output_image_filename, bfh, bih, (unsigned char *) pixels)) {
         fprintf(stderr, "Failed to create output image with embedded payload.\n");
         free(pixels);
@@ -121,11 +122,13 @@ int extract_payload(const char* input_name, const char* output_name) {
     unsigned char* decompressed_payload;
     unsigned long tmp_crc_size;
 
+
     read_bitmap(input_name, &bfh, &bih, &pixels, &pixel_data_size);
     if (!pixels) {
         fprintf(stderr, "Failed to read pixel data.\n");
         return 1;
     }
+
 
     /* Check if the signature matches */
     if (!check_signature(pixels)) {
@@ -141,6 +144,7 @@ int extract_payload(const char* input_name, const char* output_name) {
         free(pixels);
         return 1;
     }
+
 
     /* Extract and calculate CRC */
     tmp_crc_size = (unsigned long)compressed_payload_size * 12;
@@ -165,6 +169,7 @@ int extract_payload(const char* input_name, const char* output_name) {
     }
 
     /* Save decompressed payload to file */
+
     save_decompressed_payload(decompressed_payload, decompressed_payload_size, output_name);
     free(decompressed_payload);
 

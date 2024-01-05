@@ -3,141 +3,63 @@
 #include <stdlib.h>
 #include "files.h"
 #include "bmp.h"
+#include <stdint.h>
 
 
 int determine_type(const char *filename) {
-
-    FILE *file = fopen(filename, "rb");
-    int fileTypeCheck;
-    if (!file) {
-        perror("File opening failed");
+    FILE *file = fopen(filename, "rb"); // Open the file in binary mode
+    if (file == NULL) {
+        printf("Cannot open file.\\n");
         return 1;
     }
 
-    fileTypeCheck = 1;
+    unsigned char header[54]; // To store the header information
+    size_t bytesRead = fread(header, sizeof(unsigned char), 54, file); // Read the first 54 bytes of the file header
+    if (bytesRead < 54) {
+        printf("File too small to be a valid image.\\n");
+        fclose(file);
+        return 1;
+    }
 
-    if (is_png(file) && is_24bit_png(file)) {
-        printf("returning 3 as a type\n");
-        fileTypeCheck = 3;
-    } else {
-        rewind(file);
-        if (is_bmp(file) && is_24bit_bmp(file)) {
-            printf("returning 3 as a type\n");
-            fileTypeCheck = 2;
+    // Print the first few bytes of the file for debugging
+    printf("Header: ");
+    for (int i = 0; i < 8; i++) {
+        printf("%02x ", header[i]);
+    }
+    printf("\\n");
+
+    // Check for BMP file
+    if (header[0] == 'B' && header[1] == 'M') {
+        int bitDepth = header[28]; // Bit depth is stored at offset 28
+        fclose(file); // Close the file before returning
+        if (bitDepth == 24) {
+            printf("The file is a 24-bit BMP file.\\n");
+            return 2;
+        } else {
+            printf("The file is a BMP file, but not 24-bit.\\n");
+            return 1;
         }
     }
-
-    printf("returning 1 as a type\n");
-    fclose(file);
-    return fileTypeCheck;
-}
-
-
-int is_24bit_png(FILE *file) {
-    char chunk_type[5];
-    unsigned char bit_depth;
-    unsigned char color_type;
-    unsigned long chunk_length;
-
-    rewind(file);
-
-    /* Skipping PNG signature */
-    if (fseek(file, 8, SEEK_SET) != 0) {
-        return 0;
+        // Simplified PNG signature check
+    else if (header[0] == 0x89 && header[1] == 'P' && header[2] == 'N' && header[3] == 'G' &&
+             header[4] == '\r' && header[5] == '\n' && header[6] == 0x1A && header[7] == '\n') {
+        printf("PNG signature matched.\\n");
+        unsigned char bitDepth = header[24]; // Correct offset for bit depth
+        unsigned char colorType = header[25]; // Correct offset for color type
+        fclose(file); // Close the file before returning
+        if (colorType == 2 && bitDepth == 8) { // Truecolor PNG with 8-bit per channel
+            printf("The file is a 24-bit PNG file.\\n");
+            return 3; // Return 0 for successful identification
+        } else {
+            printf("The file is a PNG file, but not 24-bit.\\n");
+            return 1;
+        }
     }
-
-    /* Read IHDR chunk length and type */
-    if (fread(&chunk_length, sizeof(chunk_length), 1, file) != 1) {
-        return 0;
+    else {
+        fclose(file); // Close the file before returning
+        printf("The file is neither a 24-bit BMP file nor a PNG file.\\n");
+        return 1;
     }
-
-    if (fread(chunk_type, 1, 4, file) != 4) {
-        return 0;
-    }
-    chunk_type[4] = '\0'; /* Null-terminate the string */
-
-    /* Check if it is IHDR chunk */
-    if (strcmp(chunk_type, "IHDR") != 0) {
-        return 0;
-    }
-
-    /* Skip width and height */
-    if (fseek(file, 8, SEEK_CUR) != 0) {
-        return 0;
-    }
-
-    /* Read bit depth and color type */
-    if (fread(&bit_depth, sizeof(bit_depth), 1, file) != 1) {
-        return 0;
-    }
-
-    if (fread(&color_type, sizeof(color_type), 1, file) != 1) {
-        return 0;
-    }
-
-    /* Check for 24-bit RGB: color type 2 and bit depth 8 */
-    return color_type == 2 && bit_depth == 8;
-}
-
-
-
-
-int is_png(FILE *file) {
-    unsigned char png_signature[8] = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
-    unsigned char buffer[8];
-
-    rewind(file); /* Ensure the file is read from the beginning */
-
-    if (fread(buffer, 1, 8, file) == 8) {
-        return memcmp(buffer, png_signature, 8) == 0;
-    }
-    return 0;
-}
-
-int is_bmp(FILE *file) {
-    unsigned char bmp_signature[2] = {0x42, 0x4D};
-    unsigned char buffer[2];
-
-    rewind(file);
-
-    if (fread(buffer, 1, 2, file) == 2) {
-        printf("BMP Signature: %02X %02X\n", buffer[0], buffer[1]);
-        return memcmp(buffer, bmp_signature, 2) == 0;
-    } else {
-        printf("Failed to read BMP signature.\n");
-    }
-    return 0;
-}
-
-int is_24bit_bmp(FILE *file) {
-    unsigned long dib_header_size;
-    unsigned short bits_per_pixel;
-
-    rewind(file);
-
-    if (fseek(file, 14, SEEK_SET) != 0) {
-        printf("Failed to seek to DIB header.\n");
-        return 0;
-    }
-
-    if (fread(&dib_header_size, sizeof(dib_header_size), 1, file) != 1) {
-        printf("Failed to read DIB header size.\n");
-        return 0;
-    }
-
-    if (fseek(file, 10, SEEK_CUR) != 0) {
-        printf("Failed to seek to bits per pixel field.\n");
-        return 0;
-    }
-
-    if (fread(&bits_per_pixel, sizeof(bits_per_pixel), 1, file) != 1) {
-        printf("Failed to read bits per pixel.\n");
-        return 0;
-    }
-
-    printf("Bits per pixel: %d\n", bits_per_pixel);
-
-    return bits_per_pixel == 24;
 }
 
 int save_image(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, unsigned char* pixelData) {
@@ -193,5 +115,6 @@ int save_image(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih,
     }
 
     fclose(file);
+    printf("Image is saved\n");
     return 1;
 }
