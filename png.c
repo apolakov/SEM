@@ -47,7 +47,7 @@ int embed_to_png(const char* image_filename, const char* output_name, int* compr
 
     test_size = extract_size_png(image_pixels);
     if (test_size != payload_in_bites) {
-        fprintf(stderr, "Size embedding test failed! Embedded: %u, Extracted: %u\n", payload_in_bites, test_size);
+        fprintf(stderr, "Size embedding test failed! \n");
         free(image_pixels);
         free(compressed_payload);
         return 1;
@@ -184,7 +184,6 @@ int read_png(const char* filename, Pixel** out_pixels, int* out_width, int* out_
     png_byte color_type = png_get_color_type(png_ptr, info_ptr);
     png_byte bit_depth = png_get_bit_depth(png_ptr, info_ptr);
 
-    printf("Reading PNG with Width: %u, Height: %u\n", width, height);
 
     if (color_type != PNG_COLOR_TYPE_RGB || bit_depth != 8) {
         fprintf(stderr, "Unsupported image format. Require 24-bit RGB PNG.\n");
@@ -354,7 +353,7 @@ int embed_12bit_png(Pixel* pixels, int width, int height, const int* compressed_
     start_pixel = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS; // Adjust for signature and size field
 
     if (payload_in_bits + start_pixel > image_capacity) {
-        fprintf(stderr, "Image does not have enough capacity for the payload. Available: %u, Required: %u\n", image_capacity, payload_in_bits + 32);
+        fprintf(stderr, "Image does not have enough capacity for the payload\n");
         return 1;
     }
 
@@ -363,7 +362,7 @@ int embed_12bit_png(Pixel* pixels, int width, int height, const int* compressed_
         for (j = 0; j < 12; ++j) {
             pixel_index = bit_position + start_pixel;
             if (pixel_index >= image_capacity) {
-                fprintf(stderr, "Pixel index out of bounds. Index: %u, Capacity: %u\n", pixel_index, image_capacity);
+                fprintf(stderr, "Pixel index out of bounds. \n");
                 return 1;
             }
             bit = (compressed_payload[i] >> j) & 1;
@@ -415,7 +414,7 @@ int extract_pixels_payload(const Pixel* pixels, int width, int height, int** out
         pixel_index = i + start_pixel;
 
         if (pixel_index >= total_pixels) {
-            fprintf(stderr, "Pixel index out of bounds. Index: %u, Total Pixels: %u\n", pixel_index, total_pixels);
+            fprintf(stderr, "Pixel index out of bounds. \n");
             free(*out_compressed_payload);
             *out_compressed_payload = NULL;
             return 1;
@@ -437,7 +436,6 @@ void embed_size_png(Pixel* pixels, unsigned int size_in_bits) {
     }
 
     int start_index = SIGNATURE_SIZE_BITS;
-    printf("Embedding payload size in bits: %u\n", size_in_bits);
     for (int i = 0; i < 32; ++i) {
         unsigned int bit = (size_in_bits >> (31 - i)) & 1;
         pixels[start_index + i].blue = (pixels[start_index + i].blue & 0xFE) | bit;
