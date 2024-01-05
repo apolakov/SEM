@@ -5,7 +5,8 @@
 #include "lzw.h"
 #include "bmp.h"
 #include "checksuma.h"
-#define INT_MAX  2147483647
+#include <limits.h>
+/*#define INT_MAX  2147483647*/
 
 
 void read_bitmap_headers(FILE* input_file, BITMAPFILEHEADER* bfh, BITMAPINFOHEADER* bih) {
@@ -78,6 +79,7 @@ int embed_to_bmp(const char* image_filename, const char* output_image_filename, 
 
 void read_bitmap(const char* filename, BITMAPFILEHEADER* bfh, BITMAPINFOHEADER* bih, Pixel** pixels, int* pixel_data_size) {
     FILE* input_file;
+    size_t temp_pixel_data_size;
 
     input_file = fopen(filename, "rb");
     if (!input_file) {
@@ -86,7 +88,8 @@ void read_bitmap(const char* filename, BITMAPFILEHEADER* bfh, BITMAPINFOHEADER* 
     }
 
     read_bitmap_headers(input_file, bfh, bih);
-    *pixels = read_pixel_data(input_file, *bfh, *bih,  pixel_data_size);
+    *pixels = read_pixel_data(input_file, *bfh, *bih, &temp_pixel_data_size);
+    *pixel_data_size = (int)temp_pixel_data_size;
     fclose(input_file);
 }
 
@@ -116,6 +119,7 @@ int extract_payload(const char* input_name, const char* output_name) {
     unsigned long extracted_crc, calculated_crc;
     int decompressed_payload_size;
     unsigned char* decompressed_payload;
+    unsigned long tmp_crc_size;
 
     read_bitmap(input_name, &bfh, &bih, &pixels, &pixel_data_size);
     if (!pixels) {
@@ -139,9 +143,9 @@ int extract_payload(const char* input_name, const char* output_name) {
     }
 
     /* Extract and calculate CRC */
-    unsigned long tmp_crc_size = (unsigned long)compressed_payload_size * 12;
-    extracted_crc = (tmp_crc_size <= UINT_MAX) ? extract_crc(pixels, bih.width, abs(bih.height), (int)tmp_crc_size) : 0;  // Or handle the case where the value exceeds UINT_MAX.
-    calculated_crc = (tmp_crc_size <= UINT_MAX) ? calculate_crc(compressed_payload, (int)tmp_crc_size) : 0;  // Or handle the case where the value exceeds UINT_MAX.
+    tmp_crc_size = (unsigned long)compressed_payload_size * 12;
+    extracted_crc = (tmp_crc_size <= UINT_MAX) ? extract_crc(pixels, bih.width, abs(bih.height), (int)tmp_crc_size) : 0;
+    calculated_crc = (tmp_crc_size <= UINT_MAX) ? calculate_crc(compressed_payload, (int)tmp_crc_size) : 0;
 
     /* Compare the extracted CRC with the calculated CRC */
     if (extracted_crc != calculated_crc) {
@@ -222,7 +226,7 @@ Pixel* read_pixel_data(FILE* file, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, s
     fseek(file, (long)bfh.offset, SEEK_SET);
 
     for (i = 0; i < abs(bih.height); ++i) {
-        if (fread(pixel_data + (bih.width * i), sizeof(Pixel), bih.width, file) != bih.width) {
+        if ((int)fread(pixel_data + (bih.width * i), sizeof(Pixel), bih.width, file) != (int)bih.width) {
             fprintf(stderr, "Failed to read pixel data.\n");
             free(pixel_data);  /* Free allocated memory in case of read error */
             fclose(file);
@@ -258,19 +262,6 @@ void embed_size(Pixel* pixels, unsigned int size) {
 
 }
 
-/*
-int getBit(const int* data, int size, int position) {
-    int byteIndex = position / 32;
-    int bitIndex = position % 32;
-
-    if (byteIndex >= size) {
-        fprintf(stderr, "Error: Bit position out of bounds.\n");
-        return -1; // Indicate an error
-    }
-
-    return (data[byteIndex] >> bitIndex) & 1;
-}
- */
 
 void embed_12bit_payload(Pixel* pixels, int num_pixels, const int* compressed_payload, int compressed_size) {
     int total_bits, bit_position, start_pixel, i, payload_index, bit_index_in_payload, bit;
@@ -325,7 +316,7 @@ int* extract_12bit_payload(const Pixel* pixels, int num_pixels, int* compressed_
     memset(payload, 0, *compressed_payload_size * sizeof(int));
 
     bit_position = 0;
-    for (i = start_index; i < payload_bit_size; ++i) {
+    for (i = start_index; i < (int)payload_bit_size; ++i) {
         payload_index = bit_position / 12;
         bit_index_in_payload = bit_position % 12;
 
@@ -333,7 +324,7 @@ int* extract_12bit_payload(const Pixel* pixels, int num_pixels, int* compressed_
         payload[payload_index] |= (bit << bit_index_in_payload);
 
         bit_position++;
-        if (bit_position >= payload_bit_size) {
+        if (bit_position >= (int)payload_bit_size) {
             break;
         }
     }

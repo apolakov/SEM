@@ -1,6 +1,3 @@
-//
-// Created by alena on 29.12.2023.
-//
 
 #ifndef SEM_CHECKSUMA_H
 #define SEM_CHECKSUMA_H
@@ -20,4 +17,4 @@ void embed_crc(Pixel* pixels, int width, int height, unsigned long crc, unsigned
 unsigned long extract_crc(const Pixel* pixels, int width, int height, int compressedSizeBits);
 unsigned long calculate_crc(const int* bitArray, int bitArraySize);
 
-#endif //SEM_CHECKSUMA_H
+#endif

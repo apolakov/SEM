@@ -1,6 +1,3 @@
-//
-// Created by alena on 22.12.2023.
-//
 
 #ifndef SEMESTRALKAPLSPLSPLS_BMP_H
 #define SEMESTRALKAPLSPLSPLS_BMP_H

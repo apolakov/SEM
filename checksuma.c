@@ -101,7 +101,7 @@ void embed_crc(Pixel* pixels, int width, int height, unsigned long crc, unsigned
 
 
 unsigned long extract_crc(const Pixel* pixels, int width, int height, int compressedSizeBits) {
-    unsigned long imageCapacity, crcPosition, crc, i, pixelIndex, totalPixels;
+    unsigned long imageCapacity, crcPosition, crc, i, pixelIndex;
     unsigned char bit;
 
     imageCapacity = (unsigned long)width * height;
@@ -121,7 +121,7 @@ unsigned long extract_crc(const Pixel* pixels, int width, int height, int compre
             return 0;  /* Error handling */
         }
 
-        totalPixels = (unsigned long)width * height;
+
 
         bit = extract_bit(&pixels[pixelIndex]);
         crc |= (bit << (31 - i));

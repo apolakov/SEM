@@ -20,8 +20,6 @@ int main(int argc, char *argv[]) {
     const char* image_name = NULL;
     const char* direction = NULL;
     const char* payload_name = NULL;
-   // const char* output_name = NULL;
-   // const char* decompressed_name = NULL;
 
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-') {
@@ -42,11 +40,16 @@ int main(int argc, char *argv[]) {
 
     generate_crc32_table();
 
+    printf("Image name: %s\n", image_name);
+    printf("Direction: %s\n", direction);
+    printf("Payload name: %s\n", payload_name);
+
 
 
     if (strcmp(direction, "-h") == 0){
 
         type = determine_type(image_name);
+        printf("Type determined: %d\n", type);
         if (type == 1) {
             fprintf(stderr, "File is not a 24-bit BMP or PNG.\n");
             return 2;
@@ -106,35 +109,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
-
-/*
-
-
-
-// Function to compare two blocks of memory
-
-
-
-
-int writeBinaryPayloadData(const char* filename, const unsigned char* data, int size) {
-    FILE* file = fopen(filename, "wb");
-    if (!file) {
-        fprintf(stderr, "Failed to open file for writing payload.\n");
-        return 1;
-    }
-
-    fwrite(data, 1, size, file);
-    fclose(file);
-    return 0;
-}
-
-void printData(const unsigned char* data, int size, const char* label) {
-    printf("%s - First few bytes: ", label);
-    for (int i = 0; i < size; ++i) {
-        printf("%02x ", data[i]);
-    }
-
-    printf("\n");
-}
- */

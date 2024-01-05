@@ -6,25 +6,28 @@
 
 
 int determine_type(const char *filename) {
-    printf("determining");
+
     FILE *file = fopen(filename, "rb");
     int fileTypeCheck;
     if (!file) {
         perror("File opening failed");
-        return 1; // Return 1 to indicate failure
+        return 1;
     }
 
-    fileTypeCheck = 1; // Default to 1 (failure)
+    fileTypeCheck = 1;
 
     if (is_png(file) && is_24bit_png(file)) {
-        fileTypeCheck = 3; // It's a 24-bit PNG file
+        printf("returning 3 as a type\n");
+        fileTypeCheck = 3;
     } else {
-        rewind(file); // Necessary for BMP check
+        rewind(file);
         if (is_bmp(file) && is_24bit_bmp(file)) {
-            fileTypeCheck = 2; // It's a 24-bit BMP file
+            printf("returning 3 as a type\n");
+            fileTypeCheck = 2;
         }
     }
 
+    printf("returning 1 as a type\n");
     fclose(file);
     return fileTypeCheck;
 }
@@ -95,10 +98,13 @@ int is_bmp(FILE *file) {
     unsigned char bmp_signature[2] = {0x42, 0x4D};
     unsigned char buffer[2];
 
-    rewind(file); /* Ensure the file is read from the beginning */
+    rewind(file);
 
     if (fread(buffer, 1, 2, file) == 2) {
+        printf("BMP Signature: %02X %02X\n", buffer[0], buffer[1]);
         return memcmp(buffer, bmp_signature, 2) == 0;
+    } else {
+        printf("Failed to read BMP signature.\n");
     }
     return 0;
 }
@@ -109,34 +115,36 @@ int is_24bit_bmp(FILE *file) {
 
     rewind(file);
 
-    /* Skip the BMP header which is 14 bytes */
     if (fseek(file, 14, SEEK_SET) != 0) {
+        printf("Failed to seek to DIB header.\n");
         return 0;
     }
 
-    /* Read the size of the DIB header */
     if (fread(&dib_header_size, sizeof(dib_header_size), 1, file) != 1) {
+        printf("Failed to read DIB header size.\n");
         return 0;
     }
 
-    /* Skip to the bits_per_pixel field */
     if (fseek(file, 10, SEEK_CUR) != 0) {
+        printf("Failed to seek to bits per pixel field.\n");
         return 0;
     }
 
-    /* Read the bits_per_pixel */
     if (fread(&bits_per_pixel, sizeof(bits_per_pixel), 1, file) != 1) {
+        printf("Failed to read bits per pixel.\n");
         return 0;
     }
 
-    /* The BMP is 24-bit if bits_per_pixel is 24 */
+    printf("Bits per pixel: %d\n", bits_per_pixel);
+
     return bits_per_pixel == 24;
 }
 
 int save_image(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih, unsigned char* pixelData) {
     FILE* file;
     size_t bytesWritten;
-    int padding, i;
+    size_t padding;
+    int i;
     unsigned char pad[3] = {0};
 
     file = fopen(filename, "wb");
@@ -169,7 +177,7 @@ int save_image(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih,
 
         /* Write one row of pixels */
         bytesWritten = fwrite(rowData, 1, bih.width * 3, file);
-        if (bytesWritten != bih.width * 3) {
+        if ((int)bytesWritten != bih.width * 3) {
             fprintf(stderr, "Failed to write pixel data for row %d.\n", i);
             fclose(file);
             return 0;
@@ -187,49 +195,3 @@ int save_image(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih,
     fclose(file);
     return 1;
 }
-/*
-int write_compressed(const char* filename, const unsigned long* compressed_payload, int compressed_size) {
-    FILE* file;
-    unsigned long total_bytes;
-    unsigned char* packedData;
-    int bitPosition, i, j, code;
-    size_t bytesWritten;
-    unsigned long byteIndex, bitIndex;
-
-    file = fopen(filename, "wb");
-    if (!file) {
-        fprintf(stderr, "Failed to open file for writing compressed payload.\n");
-        return 1;
-    }
-
-    total_bytes = (compressed_size * 12 + 7) / 8;
-    packedData = (unsigned char*)malloc(total_bytes);
-    if (!packedData) {
-        fprintf(stderr, "Memory allocation failed for packed data.\n");
-        fclose(file);
-        return 1;
-    }
-
-    memset(packedData, 0, total_bytes);
-    bitPosition = 0;
-    for (i = 0; i < compressed_size; i++) {
-        code = compressed_payload[i];
-        for (j = 0; j < 12; j++) {
-            byteIndex = (bitPosition / 8);
-            bitIndex = bitPosition % 8;
-            packedData[byteIndex] |= ((code >> j) & 1) << bitIndex;
-            bitPosition++;
-        }
-    }
-
-    bytesWritten = fwrite(&compressed_size, sizeof(compressed_size), 1, file);
-    bytesWritten += fwrite(packedData, 1, total_bytes, file);
-
-    free(packedData);
-    fclose(file);
-
-    return (bytesWritten == total_bytes + 1) ? 0 : 1;
-}
-
-
-*/

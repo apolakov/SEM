@@ -1,6 +1,3 @@
-//
-// Created by alena on 22.12.2023.
-//
 
 #ifndef SEMESTRALKAPLSPLSPLS_FILES_H
 #define SEMESTRALKAPLSPLSPLS_FILES_H
@@ -18,4 +15,4 @@ int save_image(const char* filename, BITMAPFILEHEADER bfh, BITMAPINFOHEADER bih,
 
 
 
-#endif //SEMESTRALKAPLSPLSPLS_FILES_H
+#endif

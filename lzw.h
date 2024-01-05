@@ -18,4 +18,4 @@ void reset_dictionary();
 unsigned char* lzw_decompress(const int* codes, int size, int* decompressedSize);
 int* lzw_compress(const unsigned char* input, int size, int* output_size);
 void renew_dictionary();
-#endif //SEMESTRALKAPLSPLSPLS_LZW_H
+#endif

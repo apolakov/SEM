@@ -47,7 +47,7 @@ int embed_to_png(const char* image_filename, const char* output_name, int* compr
 
     test_size = extract_size_png(image_pixels);
     if (test_size != payload_in_bites) {
-        fprintf(stderr, "Size embedding test failed! Embedded: %zu, Extracted: %u\n", payload_in_bites, test_size);
+        fprintf(stderr, "Size embedding test failed! Embedded: %u, Extracted: %u\n", payload_in_bites, test_size);
         free(image_pixels);
         free(compressed_payload);
         return 1;
@@ -201,7 +201,7 @@ int read_png(const char* filename, Pixel** out_pixels, int* out_width, int* out_
         return 1;
     }
 
-    for (int y = 0; y < height; y++) {
+    for (int y = 0; y < (int)height; y++) {
         row_pointers[y] = (png_byte*) malloc(png_get_rowbytes(png_ptr, info_ptr));
         if (!row_pointers[y]) {
             fprintf(stderr, "Memory allocation failed for row %d.\n", y);
@@ -221,7 +221,7 @@ int read_png(const char* filename, Pixel** out_pixels, int* out_width, int* out_
     Pixel* pixels = (Pixel*) malloc(width * height * sizeof(Pixel));
     if (!pixels) {
         fprintf(stderr, "Memory allocation failed for pixel data.\n");
-        for (int y = 0; y < height; y++) {
+        for (int y = 0; y < (int)height; y++) {
             free(row_pointers[y]);
         }
         free(row_pointers);
@@ -230,9 +230,9 @@ int read_png(const char* filename, Pixel** out_pixels, int* out_width, int* out_
         return 1;
     }
 
-    for (int y = 0; y < height; y++) {
+    for (int y = 0; y < (int)height; y++) {
         png_bytep row = row_pointers[y];
-        for (int x = 0; x < width; x++) {
+        for (int x = 0; x < (int)width; x++) {
             Pixel* pixel = &pixels[y * width + x];
             png_bytep px = &(row[x * 3]);
             pixel->blue = px[2];
@@ -299,7 +299,7 @@ int write_png(const char* filename, Pixel* pixels, int width, int height) {
         return 1;
     }
 
-    for (int y = 0; y < height; y++) {
+    for (int y = 0; y < (int)height; y++) {
         row_pointers[y] = (png_byte*) malloc(png_get_rowbytes(png_ptr, info_ptr));
         if (!row_pointers[y]) {
             for (int j = 0; j < y; j++) {
@@ -311,7 +311,7 @@ int write_png(const char* filename, Pixel* pixels, int width, int height) {
             fprintf(stderr, "Memory allocation failed for row %d.\n", y);
             return 1;
         }
-        for (int x = 0; x < width; x++) {
+        for (int x = 0; x < (int)width; x++) {
             Pixel* pixel = &pixels[y * width + x];
             png_byte* row = &(row_pointers[y][x * 3]);
             row[0] = pixel->red;
@@ -323,7 +323,7 @@ int write_png(const char* filename, Pixel* pixels, int width, int height) {
     png_set_rows(png_ptr, info_ptr, row_pointers);
     png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
 
-    for (int y = 0; y < height; y++) {
+    for (int y = 0; y < (int)height; y++) {
         free(row_pointers[y]);
     }
     free(row_pointers);
@@ -354,7 +354,7 @@ int embed_12bit_png(Pixel* pixels, int width, int height, const int* compressed_
     start_pixel = SIGNATURE_SIZE_BITS + SIZE_FIELD_BITS; // Adjust for signature and size field
 
     if (payload_in_bits + start_pixel > image_capacity) {
-        fprintf(stderr, "Image does not have enough capacity for the payload. Available: %zu, Required: %zu\n", image_capacity, payload_in_bits + 32);
+        fprintf(stderr, "Image does not have enough capacity for the payload. Available: %u, Required: %u\n", image_capacity, payload_in_bits + 32);
         return 1;
     }
 
@@ -363,7 +363,7 @@ int embed_12bit_png(Pixel* pixels, int width, int height, const int* compressed_
         for (j = 0; j < 12; ++j) {
             pixel_index = bit_position + start_pixel;
             if (pixel_index >= image_capacity) {
-                fprintf(stderr, "Pixel index out of bounds. Index: %zu, Capacity: %zu\n", pixel_index, image_capacity);
+                fprintf(stderr, "Pixel index out of bounds. Index: %u, Capacity: %u\n", pixel_index, image_capacity);
                 return 1;
             }
             bit = (compressed_payload[i] >> j) & 1;
@@ -415,7 +415,7 @@ int extract_pixels_payload(const Pixel* pixels, int width, int height, int** out
         pixel_index = i + start_pixel;
 
         if (pixel_index >= total_pixels) {
-            fprintf(stderr, "Pixel index out of bounds. Index: %zu, Total Pixels: %zu\n", pixel_index, total_pixels);
+            fprintf(stderr, "Pixel index out of bounds. Index: %u, Total Pixels: %u\n", pixel_index, total_pixels);
             free(*out_compressed_payload);
             *out_compressed_payload = NULL;
             return 1;
